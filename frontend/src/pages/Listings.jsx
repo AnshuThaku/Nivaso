@@ -26,6 +26,7 @@ const Listings = () => {
   
   const searchQuery = searchParams.get("search");
   const categoryQuery = searchParams.get("category");
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchListings(categoryQuery, searchQuery);
@@ -34,7 +35,7 @@ const Listings = () => {
   const fetchListings = async (category, search) => {
     setLoading(true);
     try {
-      let url = "http://localhost:8080/listings";
+      let url = `${API_URL}/listings`;
       const params = new URLSearchParams();
       
       if (search) params.append("search", search);

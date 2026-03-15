@@ -14,8 +14,10 @@ app.use(cookieParser());
 const cors = require("cors");
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: process.env.FRONTEND_URL, // Render/Vercel ka link jo aap baad mein .env mein dalenge
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());

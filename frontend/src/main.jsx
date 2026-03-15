@@ -6,13 +6,15 @@ import App from './App'
 import { AuthProvider } from './context/AuthContext'
 import { NotificationProvider } from './context/NotificationContext'
 import axios from 'axios'
-
-axios.defaults.baseURL = 'http://localhost:8080';
+  
+const API_URL = import.meta.env.VITE_API_URL;
+axios.defaults.baseURL = API_URL;
 axios.defaults.withCredentials = true;
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
+    {/* basename add karne se /nivaso/ ke saare routes sahi chalenge */}
+    <BrowserRouter >
       <AuthProvider>
         <NotificationProvider>
           <App />

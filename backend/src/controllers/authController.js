@@ -45,11 +45,11 @@ module.exports.login = async (req, res) => {
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 // 🔥 SECURITY UPDATE: Cookie ko httpOnly banana zaroori hai
 const cookieOptions = {
-    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    httpOnly: true, // Javascript se hide karne ke liye
-    // secure: true, // Jab aap website ko HTTPS par live karenge tab ise uncomment kar dena
+    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    httpOnly: true,
+    secure: true,      // Production mein true
+    sameSite: "none",  // Cross-domain cookies ke liye mandatory hai
 };
-
 res.cookie("token", token, cookieOptions);   res.json({
     user: {
         _id: user._id,

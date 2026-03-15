@@ -10,7 +10,8 @@ const Signup = () => {
         email: "",
         password: ""
     });
-    
+    const API_URL = import.meta.env.VITE_API_URL;
+        
     const { login } = useAuth();
     const { showNotification } = useNotification();
     const navigate = useNavigate();
@@ -23,7 +24,7 @@ const Signup = () => {
         e.preventDefault();
         try {
             // 1. Send the signup request
-            const response = await axios.post("http://localhost:8080/signup", formData);
+            const response = await axios.post(`${API_URL}/signup`, formData);
             
             // 2. Check if the backend gave us a token right away
             if (response.data.token) {
@@ -32,7 +33,7 @@ const Signup = () => {
                  navigate("/listings");
             } else {
                  // 3. If no token was provided, automatically log them in in the background
-                 const loginResponse = await axios.post("http://localhost:8080/login", {
+                 const loginResponse = await axios.post(`${API_URL}/login`, {
                      email: formData.email,
                      password: formData.password
                  });

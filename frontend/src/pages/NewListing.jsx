@@ -30,6 +30,7 @@ const NewListing = () => {
         category: "Trending"
     });
     const [image, setImage] = useState(null);
+    const API_URL = import.meta.env.VITE_API_URL;
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -59,7 +60,7 @@ const NewListing = () => {
         data.append("image", image);
 
         try {
-            await axios.post("http://localhost:8080/listings", data, {
+            await axios.post(`${API_URL}/listings`, data, {
                 headers: {
                     "Content-Type": "multipart/form-data"
                 },

@@ -27,7 +27,7 @@ const EditListing = () => {
   });
 
   useEffect(() => {
-    axios.get(`http://localhost:8080/listings/${id}/edit`, { withCredentials: true })
+    axios.get(`${API_URL}/listings/${id}/edit`, { withCredentials: true })
       .then((res) => {
         const listing = res.data;
         setFormData({
@@ -63,6 +63,7 @@ const EditListing = () => {
     }
   };
 
+  const API_URL = import.meta.env.VITE_API_URL;
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -73,13 +74,14 @@ const EditListing = () => {
     data.append("country", formData.country);
     data.append("location", formData.location);
     data.append("category", formData.category);
+
     
     if (formData.image) {
       data.append("image", formData.image);
     }
 
     try {
-      await axios.put(`http://localhost:8080/listings/${id}`, data, {
+      await axios.put(`${API_URL}/listings/${id}`, data, {
         headers: { "Content-Type": "multipart/form-data" },
         withCredentials: true 
       });

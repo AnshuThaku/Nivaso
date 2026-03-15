@@ -12,6 +12,7 @@ const ShowListing = () => {
   const [listing, setListing] = useState(null);
   const { user } = useAuth();
   const { showNotification } = useNotification();
+  const API_URL = import.meta.env.VITE_API_URL;
   
   // Review State
   const [rating, setRating] = useState(5);
@@ -21,7 +22,7 @@ const ShowListing = () => {
   const [editComment, setEditComment] = useState("");
 
   const fetchListing = useCallback(() => {
-      axios.get(`http://localhost:8080/listings/${id}`)
+      axios.get(`${API_URL}/listings/${id}`)
       .then((response) => {
         setListing(response.data);
       })
@@ -38,7 +39,7 @@ const ShowListing = () => {
   const handleReviewSubmit = async (e) => {
       e.preventDefault();
       try {
-          await axios.post(`http://localhost:8080/listings/${id}/reviews`, {
+          await axios.post(`${API_URL}/listings/${id}/reviews`, {
               review: { rating, comment }
           }, { withCredentials: true });
           showNotification("Review added successfully", "success");
@@ -65,7 +66,7 @@ const ShowListing = () => {
 
   const handleUpdateReview = async (reviewId) => {
     try {
-      await axios.put(`http://localhost:8080/listings/${id}/reviews/${reviewId}`, {
+      await axios.put(`${API_URL}/listings/${id}/reviews/${reviewId}`, {
         review: { rating: editRating, comment: editComment }
       }, { withCredentials: true });
       showNotification("Review updated successfully", "success");
@@ -80,7 +81,7 @@ const ShowListing = () => {
   const handleDeleteReview = async (reviewId) => {
       if (window.confirm("Are you sure you want to delete this review?")) {
           try {
-               await axios.delete(`http://localhost:8080/listings/${id}/reviews/${reviewId}`, { withCredentials: true });
+               await axios.delete(`${API_URL}/listings/${id}/reviews/${reviewId}`, { withCredentials: true });
                showNotification("Review deleted successfully", "success");
                fetchListing();
           } catch (error) {
@@ -93,7 +94,7 @@ const ShowListing = () => {
   const handleDeleteListing = async () => {
     if (window.confirm("Are you sure you want to delete this listing?")) {
       try {
-        await axios.delete(`http://localhost:8080/listings/${id}`, { withCredentials: true });
+        await axios.delete(`${API_URL}/listings/${id}`, { withCredentials: true });
         showNotification("Listing deleted successfully", "success");
         navigate("/listings");
       } catch (error) {
