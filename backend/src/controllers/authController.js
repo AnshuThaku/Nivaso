@@ -40,8 +40,9 @@ module.exports.signup = async (req, res) => {
 
     res.cookie("token", token, cookieOptions);
     
-    await sendWelcomeEmail(email, username);
-    
+sendWelcomeEmail(email, username).catch(err => {
+        console.error("Nodemailer Error (Silent):", err.message);
+    });    
     res.json({
         user: {
             _id: user._id,
