@@ -11,8 +11,10 @@ dns.setServers(["1.1.1.1","8.8.8.8"])
 
 const port = process.env.PORT || 8080;
 
-// Connect to the database before starting the server
+console.log("🔥 RENDER YE LINK PADH RAHA HAI:", process.env.MONGO_URI);
 connectDB();
+// Connect to the database before starting the server
+
 
 // ---------------------------------------------------------
 // 🔥 ERROR HANDLERS HAMESHA ROUTES KE BAAD AUR LISTEN SE PEHLE HOTE HAIN
