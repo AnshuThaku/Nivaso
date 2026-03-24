@@ -9,6 +9,9 @@ import Signup from "./pages/auth/Signup";
 import NotFound from "./pages/error/NotFound";
 import { AnimatePresence, motion } from "framer-motion";
 import EditListing from "./pages/Editlisting";
+import ProfilePage from "./pages/ProfilePage";
+import ForgotPassword from "./components/ForgetPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 const AnimatedRoutes = () => {
     const location = useLocation();
@@ -71,7 +74,11 @@ const AnimatedRoutes = () => {
                             <EditListing />
                         </PageTransition>
                     }
-                />  
+                />   <Route path="/profile" element={
+                    <PageTransition>
+                        <ProfilePage/>
+                    </PageTransition>
+                } />
                 <Route
                     path="*"
                     element={
@@ -80,6 +87,17 @@ const AnimatedRoutes = () => {
                         </PageTransition>
                     }
                 />
+                <Route path="/forgot-password" element={
+                    <PageTransition>
+                        <ForgotPassword />
+                    </PageTransition>
+                } />
+                <Route path="/reset-password/:token" element={
+                    <PageTransition>
+                       <ResetPassword/>
+                    </PageTransition>
+                } />
+               
             </Routes>
         </AnimatePresence>
     );

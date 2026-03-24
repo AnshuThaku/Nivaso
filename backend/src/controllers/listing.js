@@ -2,41 +2,51 @@ const Listing = require("../models/listing");
 const ExpressError = require("../utils/ExpressError");
 
 module.exports.index = async (req, res) => {
-  const { search, category } = req.query;
+  // 1. Query params se data lo (Frontend se aayega)
+  const { search, category, page = 1 } = req.query; 
   
   let query = {};
   
-  // 1. Agar user ne search box mein kuch likha hai
+  // 2. SEARCH FILTERS
   if (search && search.trim() !== "") {
-    const searchString = search.trim();
-    const regex = new RegExp(searchString, 'i'); // 'i' ka matlab hai Bhopal aur bhopal dono match honge
-    
+    const regex = new RegExp(search.trim(), 'i'); 
     query.$or = [
-      { location: regex },    // Bhopal match ho jayega "Bhopal, India" se
+      { location: regex },
       { country: regex },
       { title: regex },
-      { category: regex }
+      { description: regex }
     ];
   }
 
-  // 2. Agar user ne category select ki hai
+  // 3. CATEGORY FILTERS
   if (category && category !== "Trending" && category !== "") {
     query.category = category;
   }
 
-  try {
-    const allListings = await Listing.find(query);
-    res.json(allListings);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch listings" });
-  }
+  // 4. PAGINATION LOGIC
+  const limit = 6; // Ek page par 6 listings
+  const skip = (parseInt(page) - 1) * limit;
+
+  // Database se sirf utni listings fetch karo jitni ek page par dikhani hain
+  const listings = await Listing.find(query).skip(skip).limit(limit);
+  
+  // Total listings count karo (Frontend ko total pages batane ke liye)
+  const totalListings = await Listing.countDocuments(query);
+
+  // 5. Naya Response Format
+  res.json({
+    success: true,
+    listings: listings,
+    totalPages: Math.ceil(totalListings / limit),
+    currentPage: parseInt(page)
+  });
 };
+
 module.exports.new = (req, res) => {
   res.json({ message: "Render form for creating a new listing" });
-}
+};
 
-
-
+// 🔥 Sahi tareeka yahan bhi: WrapAsync()
 module.exports.show = async (req, res) => {
   let { id } = req.params;
   const listing = await Listing.findById(id)
@@ -60,9 +70,8 @@ module.exports.create = async (req, res) => {
   const newlisting = new Listing(listingData);
   newlisting.owner = req.user._id;
 
-  // 🔥 FIX: Status code ab 2nd argument hai
   if (!req.file) {
-    throw new ExpressError("Image upload is required", 400); 
+    throw new ExpressError(400, "Image upload is required"); // FIX: Number pehle
   }
 
   newlisting.image = {
@@ -83,13 +92,11 @@ module.exports.edit = async (req, res) => {
     return res.status(404).json({ message: "Listing not found" });
   }
   res.json(listing);
-  
 };
 
 module.exports.update = async (req, res) => {
   let { id } = req.params;
   
-  // 🔥 FIX: Same logic applied here for updating data safely
   const listingData = req.body.Listing || req.body;
   
   let listing = await Listing.findByIdAndUpdate(id, { ...listingData }, { new: true });
@@ -110,42 +117,3 @@ module.exports.delete = async (req, res) => {
   let deletedlisting = await Listing.findByIdAndDelete(id);
   res.json({ message: "Listing deleted", deletedlisting });
 };
-
-module.exports.filterCategory = async (req, res) => {
-  const { category } = req.params;
-  const filteredListings = await Listing.find({ category });
-  res.json(filteredListings);
-};
-
-module.exports.searchListings = async (req, res) => {
-  // Frontend se 'q' (search query) aur 'category' dono aa sakte hain
-  const { q, category } = req.query;
-  
-  let searchCriteria = {};
-
-  // 1. Agar user ne search box mein kuch likha hai (Location, Title, etc.)
-  if (q && q.trim() !== "") {
-    const regex = new RegExp(q.trim(), "i");
-    searchCriteria.$or = [
-      { title: regex },
-      { location: regex },
-      { country: regex },
-      { description: regex }
-    ];
-  }
-
-  // 2. Agar user ne specific category select ki hai (Category Filter)
-  if (category && category !== "Trending" && category !== "") {
-    searchCriteria.category = category;
-  }
-
-  try {
-    const allListings = await Listing.find(searchCriteria);
-    
-    // Agar koi result na mile toh empty array bhej do (React handle kar lega)
-    res.json(allListings);
-  } catch (err) {
-    res.status(500).json({ error: "Search failed. Please try again." });
-  }
-};
-

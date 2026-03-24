@@ -23,22 +23,18 @@ const Signup = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            // 1. Send the signup request
             const response = await axios.post(`${API_URL}/signup`, formData);
             
-            // 2. Check if the backend gave us a token right away
             if (response.data.token) {
                  login(response.data);
                  showNotification("Welcome to Nivaso!", "success");
                  navigate("/listings");
             } else {
-                 // 3. If no token was provided, automatically log them in in the background
                  const loginResponse = await axios.post(`${API_URL}/login`, {
                      email: formData.email,
                      password: formData.password
                  });
                  
-                 // 4. Save the user data/token and redirect directly to listings
                  login(loginResponse.data);
                  showNotification("Account created successfully! Welcome.", "success");
                  navigate("/listings");
@@ -46,15 +42,17 @@ const Signup = () => {
 
         } catch (error) {
             console.error(error);
-            showNotification(error.response?.data?.error || "Signup failed", "error");
+            // 🔥 Dono error aur message key ko check karega (Extra safe)
+            showNotification(error.response?.data?.message || error.response?.data?.error || "Signup failed", "error");
         }
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-            <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+        // 🔥 FIX 1: Adjusted height and padding to perfectly match the Login page
+        <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-gray-50 px-4 py-6 sm:px-6 lg:px-8">
+            <div className="w-full max-w-md space-y-6 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
                 <div>
-                    <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900 tracking-tight">
+                    <h2 className="text-center text-3xl font-extrabold text-gray-900 tracking-tight">
                         Join Nivaso
                     </h2>
                     <p className="mt-2 text-center text-sm text-gray-600">
@@ -62,7 +60,8 @@ const Signup = () => {
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                {/* 🔥 FIX 2: Tightened the vertical spacing inside the form */}
+                <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
                     <div className="space-y-4 rounded-md shadow-sm">
                         <div>
                             <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
@@ -113,10 +112,10 @@ const Signup = () => {
                         </div>
                     </div>
 
-                    <div>
+                    <div className="pt-2">
                         <button
                             type="submit"
-                            className="group relative flex w-full justify-center rounded-lg border border-transparent bg-rose-600 py-3 px-4 text-sm font-medium text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 transition-colors"
+                            className="group relative flex w-full justify-center rounded-lg border border-transparent bg-rose-600 py-3 px-4 text-sm font-medium text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 transition-colors shadow-sm"
                         >
                             Sign Up
                         </button>

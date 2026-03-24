@@ -14,10 +14,8 @@ app.use(cookieParser());
 const cors = require("cors");
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // Render/Vercel ka link jo aap baad mein .env mein dalenge
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+    origin: process.env.FRONTEND_URL, // Aapka Vite frontend URL
+    credentials: true
 }));
 
 app.use(express.json());

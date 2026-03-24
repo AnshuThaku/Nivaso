@@ -16,10 +16,11 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post(`${API_URL}/login`, {
-       email,
+        email,
         password,
+      }, {
+        withCredentials: true,
       });
-      
       // Response now contains { user: {...}, token: "..." }
       login(response.data);
       showNotification("Welcome back!", "success");
@@ -30,10 +31,11 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+    // 🔥 FIX 1: min-h-screen ki jagah height thodi kam ki aur padding (py) kam ki taaki form upar aaye
+    <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-gray-50 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-6 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
         <div>
-          <h2 className="mt-2 text-center text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h2 className="text-center text-3xl font-extrabold text-gray-900 tracking-tight">
             Welcome back to Nivaso
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
@@ -41,14 +43,14 @@ const Login = () => {
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-4 rounded-md shadow-sm">
             <div>
               <label
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Email
+                Email Address
               </label>
               <input
                 id="email"
@@ -56,19 +58,27 @@ const Login = () => {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail (e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 className="relative block w-full appearance-none rounded-lg border border-gray-300 px-3 py-3 text-gray-900 placeholder-gray-500 focus:z-10 focus:border-rose-500 focus:outline-none focus:ring-rose-500 sm:text-sm transition-colors"
                 placeholder="Enter your email"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Password
-              </label>
+              {/* 🔥 FIX 2: Label aur Forgot Password link ko aamne-saamne rakha */}
+              <div className="flex items-center justify-between mb-1">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Password
+                </label>
+                <div className="text-sm">
+                  <Link to="/forgot-password" className="font-semibold text-rose-600 hover:text-rose-500">
+                    Forgot password?
+                  </Link>
+                </div>
+              </div>
               <input
                 id="password"
                 name="password"
@@ -82,10 +92,10 @@ const Login = () => {
             </div>
           </div>
 
-          <div>
+          <div className="pt-2">
             <button
               type="submit"
-              className="group relative flex w-full justify-center rounded-lg border border-transparent bg-rose-600 py-3 px-4 text-sm font-medium text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 transition-colors"
+              className="group relative flex w-full justify-center rounded-lg border border-transparent bg-rose-600 py-3 px-4 text-sm font-medium text-white hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 transition-colors shadow-sm"
             >
               Sign in
             </button>

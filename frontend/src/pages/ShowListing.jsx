@@ -3,8 +3,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useNotification } from "../context/NotificationContext";
-// 🔥 FaArrowLeft yahan add kar diya hai
 import { FaStar, FaShare, FaHeart, FaUserCircle, FaEdit, FaTrash, FaTimes, FaCheck, FaArrowLeft } from "react-icons/fa";
+import ListingMap from "../../src/components/ListingMap";
 
 const ShowListing = () => {
   const { id } = useParams();
@@ -20,6 +20,9 @@ const ShowListing = () => {
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [editRating, setEditRating] = useState(5);
   const [editComment, setEditComment] = useState("");
+
+  // 🔥 NAYA STATE: Image Gallery ke liye
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const fetchListing = useCallback(() => {
       axios.get(`${API_URL}/listings/${id}`)
@@ -104,16 +107,16 @@ const ShowListing = () => {
     }
   };
 
+  const handleBookingChange = (e) => {
+    setBooking({ ...booking, [e.target.name]: e.target.value });
+  };
+
   // --- BOOKING STATE ---
   const [booking, setBooking] = useState({
     checkIn: "",
     checkOut: "",
     guests: 1,
   });
-
-  const handleBookingChange = (e) => {
-    setBooking({ ...booking, [e.target.name]: e.target.value });
-  };
 
   const calculateTotal = () => {
     if (!booking.checkIn || !booking.checkOut) return 0;
@@ -133,12 +136,16 @@ const ShowListing = () => {
   const currentUserId = user ? String(user._id || user.id) : null;
   const listingOwnerId = listing.owner ? String(listing.owner._id || listing.owner) : null;
   const isListingOwner = Boolean(currentUserId && listingOwnerId && currentUserId === listingOwnerId);
+  const hasBooked = false; 
+
+  const imagesArray = listing.images && listing.images.length > 0 
+      ? listing.images 
+      : (listing.image ? [listing.image] : [{ url: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=60" }]);
 
   return (
     <div className="bg-white min-h-screen pb-20 pt-6">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* 🔥 SMART BACK BUTTON ADDED HERE */}
         <button 
             type="button"
             onClick={() => navigate(-1)}
@@ -148,7 +155,7 @@ const ShowListing = () => {
         </button>
 
         {/* Title Header */}
-        <div className="mb-6">
+        <div className="mb-4">
              <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 mb-2">{listing.title}</h1>
              <div className="flex flex-col md:flex-row md:justify-between md:items-center text-sm text-gray-800 gap-2">
                  <div className="flex items-center gap-2 flex-wrap">
@@ -165,13 +172,43 @@ const ShowListing = () => {
              </div>
         </div>
 
-        {/* Image Grid */}
-        <div className="rounded-xl overflow-hidden h-[300px] md:h-[450px] mb-8 relative w-full">
-           <img
-              src={listing.image?.url}
-              alt={listing.title}
-              className="w-full h-full object-cover hover:opacity-95 transition cursor-pointer"
-            />
+        {/* 🔥 NEW E-COMMERCE STYLE IMAGE GALLERY */}
+        <div className="mb-10">
+            {/* Main Big Image */}
+            <div className="w-[80%] h-[350px] md:h-[400px] rounded-2xl overflow-hidden mb-4 bg-gray-100 shadow-sm border border-gray-200">
+                <img
+                    src={imagesArray[activeImageIndex]?.url}
+                    alt="Main property view"
+                    className="w-full h-full object-cover transition-opacity duration-300"
+                />
+            </div>
+
+            {/* Small Variant Cards (Thumbnails) */}
+            {imagesArray.length > 1 && (
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {imagesArray.map((img, index) => (
+                        <button
+                            key={index}
+                            onClick={() => setActiveImageIndex(index)}
+                            className={`relative flex-shrink-0 w-24 h-24 md:w-32 md:h-24 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                                activeImageIndex === index 
+                                ? "border-rose-500 shadow-md scale-[1.02]" 
+                                : "border-transparent opacity-60 hover:opacity-100"
+                            }`}
+                        >
+                            <img
+                                src={img.url}
+                                alt={`Variant ${index + 1}`}
+                                className="w-full h-full object-cover"
+                            />
+                            {/* Overlay for inactive thumbnails */}
+                            {activeImageIndex !== index && (
+                                <div className="absolute inset-0 bg-black/10 hover:bg-transparent transition-colors"></div>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -182,7 +219,7 @@ const ShowListing = () => {
                         <div>
                             <h2 className="text-2xl font-semibold text-gray-900">Entire home hosted by {listing.owner?.username}</h2>
                             <p className="text-gray-600 mt-1">
-                                2 guests · 1 bedroom · 1 bed · 1 bath
+                                4 guests · 2 bedrooms · 2 beds · 2 baths
                             </p>
                         </div>
                         <FaUserCircle className="text-5xl text-gray-400" />
@@ -195,7 +232,6 @@ const ShowListing = () => {
                      </p>
                  </div>
 
-                 {/* 🔥 SIRF ASLI OWNER KO DIKHENGA YE SECTION */}
                  {isListingOwner && (
                     <div className="flex gap-4 mb-8 pb-8 border-b border-gray-200">
                         <Link to={`/listings/${listing._id}/edit`} className="bg-gray-900 text-white px-6 py-2 rounded-lg font-semibold hover:bg-black transition-colors">
@@ -213,8 +249,7 @@ const ShowListing = () => {
                         <FaStar className="text-base" /> 4.8 · {listing.reviews?.length || 0} reviews
                      </h2>
                      
-                     {/* Add Review Form */}
-                     {user && (
+                     {user && hasBooked && (
                          <form onSubmit={handleReviewSubmit} className="mb-10 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                              <h3 className="text-lg font-semibold mb-4 text-gray-900">Leave a review</h3>
                              <div className="mb-4">
@@ -252,7 +287,6 @@ const ShowListing = () => {
                      {/* Display Reviews */}
                      <div className="grid grid-cols-1 gap-y-8">
                          {listing.reviews && listing.reviews.map(review => {
-                             // 🔥 SAFE STRING CHECK FOR REVIEW AUTHOR
                              const reviewAuthorId = review.author ? String(review.author._id || review.author) : null;
                              const isReviewAuthor = Boolean(currentUserId && reviewAuthorId && currentUserId === reviewAuthorId);
                              
@@ -433,7 +467,9 @@ const ShowListing = () => {
                 </div>
             </div>
         </div>
+        <ListingMap location={`${listing.location}, ${listing.country}`} />
       </div>
+
     </div>
   );
 };

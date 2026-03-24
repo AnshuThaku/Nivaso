@@ -1,6 +1,9 @@
 const path = require('path');
 // 🔥 Sabse upar: .env file ka sahi path batana zaroori hai
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') }); 
+const dns = require("dns");
+dns.setServers(["1.1.1.1","8.8.8.8"])
+
 
 const mongoose = require("mongoose");
 const { data } = require("./data"); // Path check kar lena agar same folder mein hai

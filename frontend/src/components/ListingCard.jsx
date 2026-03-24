@@ -3,6 +3,12 @@ import { FaStar } from "react-icons/fa";
 import { motion } from "framer-motion";
 
 const ListingCard = ({ listing }) => {
+  // 🔥 SAFETY CHECK: Agar images array exist karta hai aur usme kam se kam 1 photo hai
+  // Warna ek default placeholder image dikha do taaki app crash na ho
+  const imageUrl = listing.images && listing.images.length > 0 
+    ? listing.images[0].url 
+    : "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=60"; // Default image
+
   return (
     <Link to={`/listings/${listing._id}`} className="block w-full">
         <motion.div 
@@ -15,7 +21,7 @@ const ListingCard = ({ listing }) => {
         >
       <div className="aspect-square w-full overflow-hidden rounded-xl bg-gray-200 relative mb-3">
         <img
-          src={listing.image.url}
+          src={imageUrl} // 🔥 Yahan par naya variable use kiya hai
           alt={listing.title}
           className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-300 ease-in-out"
         />

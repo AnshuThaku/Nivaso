@@ -151,17 +151,15 @@ const Navbar = () => {
                 Host Your Home
             </Link>
 
-          
-            
-
             {/* Desktop User Section */}
             <div className="hidden md:flex items-center gap-3">
               {user ? (
                 <>
-                  <div className="flex items-center gap-2 bg-gray-50 border px-3 py-1.5 rounded-full">
+                  {/* 🔥 Yahan div ko Link mein badal diya hai */}
+                  <Link to="/profile" className="flex items-center gap-2 bg-gray-50 border px-3 py-1.5 rounded-full hover:bg-gray-100 transition cursor-pointer">
                     <FaUserCircle className="text-rose-500 text-xl" />
                     <span className="text-sm font-semibold text-gray-700">{user.username}</span>
-                  </div>
+                  </Link>
                   <button onClick={logout} className="text-sm font-semibold text-white bg-rose-500 hover:bg-rose-600 px-4 py-2 rounded-full transition shadow-sm">Log out</button>
                 </>
               ) : (
@@ -185,6 +183,8 @@ const Navbar = () => {
                     {user ? (
                       <>
                         <div className="px-4 py-3 border-b"><p className="text-sm font-semibold truncate">Hi, {user.username}</p></div>
+                        {/* 🔥 Yahan mobile menu mein Profile ka link daal diya */}
+                        <Link to="/profile" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setIsOpen(false)}>Profile</Link>
                         <Link to="/trips" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setIsOpen(false)}>Trips</Link>
                         <Link to="/wishlists" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setIsOpen(false)}>Wishlists</Link>
                         <Link to="/listings/new" className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setIsOpen(false)}>Host Your Home</Link>
@@ -220,7 +220,6 @@ const Navbar = () => {
          </div>
       </div>
 
-      {/* 🔥 FIX: Categories Bar aligned with the main container on big screens */}
        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            <div className="flex z-0 items-center gap-8 overflow-x-auto pb-4 no-scrollbar">
               {categories.map((cat) => (
