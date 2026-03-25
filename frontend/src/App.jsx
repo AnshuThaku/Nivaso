@@ -1,15 +1,15 @@
 import { Route, Routes, useLocation } from "react-router-dom";
-import Navbar from "./components/Navbar";
+import Navbar from "./components/Navbar/Navbar";
 import Footer from "./components/Footer";
-import Listings from "./pages/Listings";
-import ShowListing from "./pages/ShowListing";
-import NewListing from "./pages/NewListing";
+import Listings from "./pages/Listing/Listings";
+import ShowListing from "./pages/Listing/ShowListing";
+import NewListing from "./pages/Listing/NewListing";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import NotFound from "./pages/error/NotFound";
 import { AnimatePresence, motion } from "framer-motion";
-import EditListing from "./pages/Editlisting";
-import ProfilePage from "./pages/ProfilePage";
+import EditListing from "./pages/Listing/Editlisting";
+import ProfilePage from "./pages/Profile/ProfilePage";
 import ForgotPassword from "./components/ForgetPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 

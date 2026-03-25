@@ -29,6 +29,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/listings", ListingRouter);
 app.use("/listings/:id/reviews", reviewRouter);
 app.use("/", userRouter);
+app.use("/listings/:id/bookings", require("./routes/BookingRoute"));
+
 
 
 

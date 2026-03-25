@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useNotification } from "../context/NotificationContext";
+import { useNotification } from "../../context/NotificationContext";
 import { FaArrowLeft, FaCloudUploadAlt } from "react-icons/fa";
 
 const categories = [

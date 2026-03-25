@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import ListingCard from "../components/ListingCard";
+import ListingCard from "../../components/Listing/ListingCard";
 import { FaFire, FaMountain, FaHome, FaWater, FaSnowflake, FaBed, FaTree } from "react-icons/fa";
 import { GiCastle, GiFarmTractor, GiForestCamp, GiBoatFishing } from "react-icons/gi";
 
