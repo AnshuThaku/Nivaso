@@ -18,74 +18,15 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
-        const script = document.createElement("script");
-        script.src = "https://checkout.razorpay.com/v1/checkout.js";
-        script.onload = () => resolve(true);
-        script.onerror = () => resolve(false);
-        document.body.appendChild(script);
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
     });
   };
 
-  const handleReserveClick = async () => {
-    if (!user) return showNotification("Please login to book this place", "error");
-    if (!booking.checkIn || !booking.checkOut) return showNotification("Please select check-in and check-out dates", "error");
-
-    setIsProcessing(true);
-
-    try {
-        const res = await loadRazorpayScript();
-        if (!res) {
-            setIsProcessing(false);
-            return showNotification("Failed to load Razorpay SDK. Check your connection.", "error");
-        }
-
-        const orderResponse = await axios.post(`${API_URL}/listings/${listing._id}/bookings`, booking, { withCredentials: true });
-        const { order, bookingId } = orderResponse.data;
-
-        const options = {
-            key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
-            amount: order.amount,
-            currency: order.currency,
-            name: "Nivaso Stays",
-            description: `Booking for ${listing.title}`,
-            order_id: order.id,
-            handler: async function (response) {
-                try {
-                    const verifyResponse = await axios.post(`${API_URL}/listings/${listing._id}/bookings/confirm-payment`, {
-                        bookingId: bookingId,
-                        razorpay_order_id: response.razorpay_order_id,
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_signature: response.razorpay_signature
-                    }, { withCredentials: true });
-
-                    if (verifyResponse.data.success) {
-                        showNotification("Payment Successful! 🎉", "success");
-                        navigate("/listings"); 
-                    }
-                } catch (error) {
-                    showNotification("Payment Verification Failed!", "error");
-                }
-            },
-            prefill: {
-                name: user?.username || "Guest User",
-                email: user?.email || "guest@example.com",
-            },
-            theme: { color: "#e11d48" },
-        };
-
-        const paymentObject = new window.Razorpay(options);
-        paymentObject.on("payment.failed", function (response) {
-            showNotification(response.error.description, "error");
-        });
-        paymentObject.open();
-
-    } catch (error) {
-        showNotification(error.response?.data?.message || "Booking creation failed", "error");
-    } finally {
-        setIsProcessing(false);
-    }
-  };
-
+  // 🔥 Dynamically calculate totals
   const calculateTotal = () => {
     if (!booking.checkIn || !booking.checkOut) return 0;
     const start = new Date(booking.checkIn);
@@ -99,8 +40,87 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
   const taxes = Math.round(total * 0.05);
   const grandTotal = total + serviceFee + taxes;
 
+  const handleReserveClick = async () => {
+    // 1. Basic Validations
+    if (!user) return showNotification("Please login to book this place", "error");
+    if (!booking.checkIn || !booking.checkOut) return showNotification("Please select check-in and check-out dates", "error");
+    
+    const nights = Math.ceil((new Date(booking.checkOut) - new Date(booking.checkIn)) / (1000 * 60 * 60 * 24));
+    if (nights <= 0) return showNotification("Check-out must be after check-in date", "error");
+
+    setIsProcessing(true);
+
+    try {
+      // 2. Load Razorpay
+      const res = await loadRazorpayScript();
+      if (!res) {
+        setIsProcessing(false);
+        return showNotification("Failed to load Razorpay SDK. Check your connection.", "error");
+      }
+
+      // 3. 🚀 Idempotency Key Generate karo (Double charge rokne ke liye)
+      const idempotencyKey = crypto.randomUUID();
+
+      // 4. Create Order on Backend
+      const payload = {
+        ...booking,
+        guests: Number(booking.guests), // Ensure number
+        totalPrice: grandTotal, // Send the calculated grand total
+        idempotencyKey // Send to backend
+      };
+
+      const orderResponse = await axios.post(`${API_URL}/listings/${listing._id}/bookings`, payload, { withCredentials: true });
+      const { order, bookingId } = orderResponse.data;
+
+      // 5. Open Razorpay Modal
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
+        amount: order.amount, // Ye paise mein hona chahiye (Backend se order.amount aayega)
+        currency: order.currency, // "INR"
+        name: "nivaso.",
+        description: `Booking for ${listing.title}`,
+        order_id: order.id,
+        handler: async function (response) {
+          try {
+            // 6. Verify Payment Signature
+            const verifyResponse = await axios.post(`${API_URL}/listings/${listing._id}/bookings/confirm-payment`, {
+              bookingId: bookingId,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            }, { withCredentials: true });
+
+            if (verifyResponse.data.success) {
+              showNotification("Payment Successful! 🎉", "success");
+              navigate("/my-trips"); // Better to redirect to user's trips page
+            }
+          } catch (error) {
+            showNotification("Payment Verification Failed! Contact support.", "error");
+          }
+        },
+        prefill: {
+          name: user?.username || "Guest User",
+          email: user?.email || "guest@example.com",
+        },
+        theme: { color: "#e11d48" }, // Match with your rose-600 Tailwind color
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.on("payment.failed", function (response) {
+        showNotification(response.error.description, "error");
+      });
+      paymentObject.open();
+
+    } catch (error) {
+      showNotification(error.response?.data?.message || "Booking creation failed", "error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
-<div className="sticky top-28 self-start z-10 bg-white border border-gray-200 rounded-xl p-6 shadow-xl ring-1 ring-gray-200">  
+    <div className="sticky top-28 self-start z-10 bg-white border border-gray-200 rounded-xl p-6 shadow-xl ring-1 ring-gray-200">  
+      {/* ... (Aapka baaki ka UI same rahega, usme koi issue nahi hai) ... */}
           <div className="flex justify-between items-baseline mb-6">
             <div>
                 <span className="text-2xl font-semibold text-gray-900">₹{listing.price.toLocaleString("en-IN")}</span>
@@ -134,7 +154,8 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
                         value={booking.checkOut}
                         onChange={handleBookingChange}
                         className="w-full text-sm outline-none bg-transparent text-gray-600 cursor-pointer p-0 m-0"
-                        min={booking.checkIn || new Date().toISOString().split('T')[0]}
+                        // Checkout date checkIn ke baad ki hi select ho sakti hai
+                        min={booking.checkIn ? new Date(new Date(booking.checkIn).getTime() + 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
                     />
                 </div>
             </div>
@@ -149,7 +170,7 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
                     {[1,2,3,4,5,6].map(num => (
                         <option key={num} value={num}>{num} guest{num > 1 ? 's' : ''}</option>
                     ))}
-                </select> {/* 🔥 YAHAN FIX KIYA HAI: </select> */}
+                </select>
             </div>
         </div>
 

@@ -26,7 +26,7 @@ const ProfilePage = () => {
     fetchProfile();
   }, [navigate]);
 
-  if (loading) {
+  if (loading || !profileData.user) {
     return (
       <div className="flex justify-center items-center min-h-[80vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500"></div>
@@ -73,7 +73,7 @@ const ProfilePage = () => {
               activeTab === "trips" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/50"
             }`}
           >
-            <FaSuitcase className={activeTab === "trips" ? "text-rose-500" : "text-gray-400"} />
+            <FaSuitcase className={activeTab === "trips" ? "text-black" : "text-gray-400"} />
             My Trips
           </button>
           <button
@@ -82,7 +82,7 @@ const ProfilePage = () => {
               activeTab === "settings" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/50"
             }`}
           >
-            <FaUserCog className={activeTab === "settings" ? "text-rose-500" : "text-gray-400"} />
+            <FaUserCog className={activeTab === "settings" ? "text-black" : "text-gray-400"} />
             Account Settings
           </button>
         </div>
@@ -101,7 +101,7 @@ const ProfilePage = () => {
                 {upcomingTrips.length === 0 ? (
                   <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-gray-300 shadow-sm flex flex-col items-center justify-center">
                     <div className="bg-rose-50 h-20 w-20 rounded-full flex items-center justify-center mb-6">
-                      <FaSuitcase className="text-rose-500 text-3xl" />
+                      <FaSuitcase className="text-black text-3xl" />
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 mb-2">No upcoming trips</h3>
                     <p className="text-gray-500 mb-8 max-w-md mx-auto">Time to dust off your bags and start planning your next great adventure with Nivaso.</p>
@@ -202,7 +202,7 @@ const BookingCard = ({ booking, isPast }) => {
         {/* Dates Block */}
         <div className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl p-4 mb-6">
           <div className="flex items-start gap-3">
-             <div className="bg-white p-2 rounded-lg shadow-sm text-rose-500">
+             <div className="bg-white p-2 rounded-lg shadow-sm text-black">
                <FaCalendarCheck size={18} />
              </div>
              <div>

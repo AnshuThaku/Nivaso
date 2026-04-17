@@ -1,88 +1,81 @@
-import { useState, useEffect, useRef } from "react";
-import { FaSearch, FaPlus, FaMinus } from "react-icons/fa";
-import { AnimatePresence, motion } from "framer-motion";
+import React, { useRef, useEffect, useState } from 'react';
+import { Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchContext } from '../../context/SearchContext';
+import SuggestionsDropdown from '../Search/Suggestion';
 
-const DesktopSearch = ({ searchQuery, setSearchQuery, handleSearch }) => {
-  const [isGuestOpen, setIsGuestOpen] = useState(false);
-  const [guests, setGuests] = useState({ adults: 1, children: 0, infants: 0, pets: 0 });
-  const guestDropdownRef = useRef(null);
+const DesktopSearch = () => {
+  const dropdownRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const { 
+    searchQuery, setSearchQuery, 
+    fetchRecentSearches, handleSearchSubmit 
+  } = useSearchContext();
 
-  // Click outside to close guest dropdown
+  // Bahar click karne par wapas chota ho jayega (Collapse)
   useEffect(() => {
-    if (!isGuestOpen) return;
-    const handleClose = (e) => {
-      if (guestDropdownRef.current && !guestDropdownRef.current.contains(e.target)) {
-        setIsGuestOpen(false);
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsExpanded(false);
       }
     };
-    const handleKeyClose = () => setIsGuestOpen(false);
-    document.addEventListener('mousedown', handleClose);
-    document.addEventListener('keydown', handleKeyClose);
-    return () => {
-      document.removeEventListener('mousedown', handleClose);
-      document.removeEventListener('keydown', handleKeyClose);
-    };
-  }, [isGuestOpen]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  const updateGuest = (type, operation) => {
-    setGuests((prev) => {
-      const newValue = operation === "inc" ? prev[type] + 1 : prev[type] - 1;
-      if (newValue < 0) return prev;
-      if (type === "adults" && newValue < 1) return prev; 
-      return { ...prev, [type]: newValue };
-    });
+  const handleFocus = () => {
+    fetchRecentSearches();
+    setIsExpanded(true);
   };
 
-  const totalGuests = guests.adults + guests.children;
-
   return (
-    <div className="hidden md:flex items-center border border-gray-300 rounded-full py-2 px-4 shadow-sm hover:shadow-md transition cursor-pointer relative">
-      <input
-        type="text"
-        placeholder="Search destinations"
-        className="text-sm font-semibold px-4 border-r border-gray-300 outline-none w-40 bg-transparent placeholder-gray-600"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-      />
-      <div className="text-sm font-semibold px-4 border-r border-gray-300 whitespace-nowrap cursor-pointer" onClick={() => alert("Coming soon!")}>
-        Any week
-      </div>
-      <div className="text-sm text-gray-500 px-4 whitespace-nowrap" onClick={() => setIsGuestOpen(!isGuestOpen)}>
-        <span className={`${totalGuests ? 'font-semibold text-gray-800' : ''}`}>
-          {totalGuests > 0 ? `${totalGuests} guests` : 'Add guests'}
-        </span>
-      </div>
-      <div className="bg-rose-500 text-white p-2 rounded-full hover:bg-rose-600 transition" onClick={handleSearch}>
-        <FaSearch size={12} />
-      </div>
+    <div ref={dropdownRef} className="relative hidden md:flex flex-col items-center justify-center">
+      
+      {/* 🚀 SEARCH INPUT WITH DRAMATIC WIDTH ANIMATION */}
+      <motion.div 
+        initial={false}
+        // Normal size: 300px | Expanded size: 450px
+        animate={{ width: isExpanded ? 450 : 300 }} 
+        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        className={`flex items-center rounded-full py-1.5 px-2 transition-colors duration-300
+          ${isExpanded 
+            ? 'bg-gray-50 border border-gray-300 shadow-lg ring-4 ring-rose-500/10' 
+            : 'bg-white border border-gray-300 shadow-sm hover:shadow-md'}`}
+      >
+        <input 
+          type="text"
+          placeholder="Search stays in India..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onFocus={handleFocus}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSearchSubmit(searchQuery);
+              setIsExpanded(false);
+            }
+          }}
+          className="flex-grow bg-transparent outline-none text-sm font-medium text-gray-800 placeholder-gray-500 px-3 truncate"
+        />
+        
+        {/* Search Button */}
+        <button 
+          onClick={() => {
+             handleSearchSubmit(searchQuery);
+             setIsExpanded(false);
+          }}
+          className="bg-rose-500 p-2 rounded-full text-white hover:bg-rose-600 transition shadow-sm shrink-0 flex items-center justify-center"
+        >
+          <Search size={16} strokeWidth={3} />
+        </button>
+      </motion.div>
 
-      {/* Guest Dropdown */}
+      {/* Dropdown UI Container */}
       <AnimatePresence>
-        {isGuestOpen && (
-          <motion.div 
-            ref={guestDropdownRef} 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 20 }} 
-            className="absolute top-16 right-0 bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 w-[400px] z-50"
-          >
-            {['adults', 'children', 'infants', 'pets'].map((type) => (
-              <div key={type} className="flex justify-between items-center py-4 border-b border-gray-100 last:border-0">
-                <div>
-                  <h3 className="font-semibold text-base capitalize">{type}</h3>
-                  <p className="text-sm text-gray-500">
-                    {type === 'adults' ? 'Ages 13+' : type === 'children' ? 'Ages 2-12' : type === 'infants' ? 'Under 2' : 'Service animal?'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <button onClick={() => updateGuest(type, 'dec')} disabled={type === 'adults' ? guests[type] <= 1 : guests[type] <= 0} className="h-8 w-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-20"><FaMinus size={10} /></button>
-                  <span className="w-4 text-center">{guests[type]}</span>
-                  <button onClick={() => updateGuest(type, 'inc')} className="h-8 w-8 rounded-full border border-gray-300 flex items-center justify-center"><FaPlus size={10} /></button>
-                </div>
-              </div>
-            ))}
-          </motion.div>
+        {isExpanded && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 w-full max-w-[450px] z-50">
+            <SuggestionsDropdown onSelectAction={() => setIsExpanded(false)} />
+          </div>
         )}
       </AnimatePresence>
     </div>

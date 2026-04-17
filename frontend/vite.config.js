@@ -6,4 +6,9 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   base: '/',
+  server: {
+    port: 5173,      // Aapka fixed port
+    strictPort: true, // Agar 5173 busy hai, toh ye automatically 5174 pe nahi jayega
+    cors: true        // Frontend level pe CORS configuration enable karne ke liye
+  }
 })

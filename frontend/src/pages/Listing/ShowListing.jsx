@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../../context/NotificationContext";
@@ -19,14 +19,23 @@ const ShowListing = () => {
   const { user } = useAuth();
   const { showNotification } = useNotification();
   const API_URL = import.meta.env.VITE_API_URL;
+  const hasTrackedView = useRef(false);
 
   const fetchListing = useCallback(() => {
       axios.get(`${API_URL}/listings/${id}`)
-      .then((response) => setListing(response.data))
+      .then((response) => {
+        setListing(response.data);
+        // Track view for recommendations (only once per page load)
+        if (!hasTrackedView.current && response.data) {
+          // trackView(response.data);
+          hasTrackedView.current = true;
+        }
+      })
       .catch((error) => console.error("Error fetching listing:", error));
   }, [id, API_URL]);
 
   useEffect(() => {
+    hasTrackedView.current = false; // Reset on id change
     fetchListing();
   }, [fetchListing]);
 

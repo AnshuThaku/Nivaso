@@ -1,8 +1,7 @@
-const Listing = require("./models/listing");
-const Review = require("./models/review");
-const { listingSchema, reviewSchema } = require("./schema");
-const ExpressError = require("./utils/ExpressError");
-const User = require("./models/user");
+const Listing = require("../models/listing");
+const Review = require("../models/review");
+const ExpressError = require("../utils/ExpressError");
+const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 
 module.exports.isloggedin = async (req, res, next) => {

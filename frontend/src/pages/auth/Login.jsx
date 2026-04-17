@@ -74,7 +74,7 @@ const Login = () => {
                   Password
                 </label>
                 <div className="text-sm">
-                  <Link to="/forgot-password" className="font-semibold text-rose-600 hover:text-rose-500">
+                  <Link to="/forgot-password" className="font-semibold text-rose-600 hover:text-black">
                     Forgot password?
                   </Link>
                 </div>
@@ -107,7 +107,7 @@ const Login = () => {
             Don't have an account?{" "}
             <Link
               to="/signup"
-              className="font-semibold text-rose-600 hover:text-rose-500 transition-colors"
+              className="font-semibold text-rose-600 hover:text-black transition-colors"
             >
               Sign up
             </Link>

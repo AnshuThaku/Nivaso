@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Wrapasync = require('../utils/Wrapasync');
 const usercontroller = require("../controllers/authController.js");
-const { isloggedin } = require("../middleware.js");
+const { isloggedin } = require("../middleware/authmiddleware.js");
 const profileController = require("../controllers/profileController.js");
 
 router.get("/profile", isloggedin, Wrapasync(profileController.getUserProfile));

@@ -46,7 +46,6 @@ module.exports.new = (req, res) => {
   res.json({ message: "Render form for creating a new listing" });
 };
 
-// 🔥 Sahi tareeka yahan bhi: WrapAsync()
 module.exports.show = async (req, res) => {
   let { id } = req.params;
   const listing = await Listing.findById(id)
@@ -71,7 +70,7 @@ module.exports.create = async (req, res) => {
   newlisting.owner = req.user._id;
 
   if (!req.file) {
-    throw new ExpressError(400, "Image upload is required"); // FIX: Number pehle
+    throw new ExpressError(400, "Image upload is required"); 
   }
 
   newlisting.image = {
@@ -117,3 +116,92 @@ module.exports.delete = async (req, res) => {
   let deletedlisting = await Listing.findByIdAndDelete(id);
   res.json({ message: "Listing deleted", deletedlisting });
 };
+
+// ==========================================
+// 🔥 NEWLY ADDED FUNCTIONS (To Fix 500 Errors)
+// ==========================================
+
+// 1. Frontend Categories ke liye Filter Logic
+module.exports.filterCategory = async (req, res) => {
+  const { category } = req.params;
+  const { limit = 6 } = req.query; 
+
+  let query = {};
+  
+  if (category && category !== "Trending" && category !== "All") {
+    query.category = category;
+  }
+
+  // Find karne ke baad limit laga di
+  const listings = await Listing.find(query).limit(parseInt(limit));
+
+  res.json({
+    success: true,
+    listings: listings
+  });
+};
+
+// 2. Search ke liye Logic (Aapke routes me '/search' defined tha)
+module.exports.searchListings = async (req, res) => {
+  const { q } = req.query; // Search keyword (e.g., /search?q=mumbai)
+  
+  let query = {};
+  
+  if (q && q.trim() !== "") {
+    // Fuzzy search - create pattern that allows typos
+    const searchTerm = q.trim();
+    
+    // Create fuzzy regex pattern (allows 1-2 character variations)
+    const fuzzyPattern = createFuzzyPattern(searchTerm);
+    const regex = new RegExp(fuzzyPattern, 'i'); 
+    
+    query.$or = [
+      { location: regex },
+      { country: regex },
+      { title: regex },
+      { description: regex }
+    ];
+  }
+
+  const listings = await Listing.find(query).limit(20);
+  
+  res.json({
+    success: true,
+    listings: listings
+  });
+};
+
+// Helper function to create fuzzy search pattern
+function createFuzzyPattern(term) {
+  // For short terms, use simple pattern
+  if (term.length <= 3) {
+    return term;
+  }
+  
+  // Create pattern that matches similar words
+  // E.g., "mumbai" -> "m.?u.?m.?b.?a.?i" (allows extra chars between)
+  // Also handles common typos
+  
+  const chars = term.split('');
+  let pattern = chars.map(char => {
+    // Common character substitutions for typos
+    const substitutions = {
+      'a': '[ae]',
+      'e': '[ei]',
+      'i': '[iy]',
+      'o': '[ou]',
+      'u': '[uo]',
+      'c': '[ck]',
+      'k': '[ck]',
+      's': '[sz]',
+      'z': '[zs]',
+    };
+    
+    const sub = substitutions[char.toLowerCase()];
+    return sub || char;
+  }).join('.?'); // Allow optional characters between
+  
+  return pattern;
+}
+
+

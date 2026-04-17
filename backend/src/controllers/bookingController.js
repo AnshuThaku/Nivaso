@@ -1,118 +1,162 @@
-const Booking = require("../models/BookingModel");
-const Listing = require("../models/listing");
-const ExpressError = require("../utils/ExpressError");
-const WrapAsync = require("../utils/Wrapasync");
+const mongoose = require('mongoose');
+const crypto = require('crypto');
+const Booking = require('../models/BookingModel');
+const Listing = require('../models/listing');
+const razorpay = require('../config/RazorPayConfig');
+const ExpressError = require('../utils/ExpressError');
 
-// 🔥 Nayi files import ki hain asli payment ke liye
-const Razorpay = require("razorpay");
-const crypto = require("crypto");
+// ── API 1: INITIATE BOOKING (Transaction + Razorpay Order) ──
+exports.initiateBooking = async (req, res) => {
+  const { listingId, checkIn, checkOut, guests, idempotencyKey } = req.body;
+  const userId = req.user._id;
 
-// 🔑 Razorpay Setup (.env se keys uthayega)
-const razorpayInstance = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+  // Step 1: Validate Dates
+  const checkInDate = new Date(checkIn);
+  const checkOutDate = new Date(checkOut);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
-// 1. CREATE PENDING BOOKING & GENERATE RAZORPAY ORDER
-module.exports.createBooking = WrapAsync(async (req, res) => {
-    const { id } = req.params;
-    const { checkIn, checkOut, guests } = req.body;
+  if (checkInDate < now) throw new ExpressError(400, "Check-in cannot be in the past");
+  if (checkInDate >= checkOutDate) throw new ExpressError(400, "Check-out must be after check-in");
 
-    if (!checkIn || !checkOut || !guests) {
-        throw new ExpressError(400, "Missing details.");
-    }
-
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-
-    if (checkInDate >= checkOutDate) {
-        throw new ExpressError(400, "Invalid dates. Check-out must be after Check-in.");
-    }
-
-    // 🛑 Double Booking Check
-    const overlappingBookings = await Booking.find({
-        listing: id,
-        $or: [
-            { checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate } }
-        ],
-        paymentStatus: { $ne: 'failed' } 
+  // Step 2: Idempotency Check
+  let existingBooking = await Booking.findOne({ idempotencyKey });
+  if (existingBooking) {
+    return res.status(200).json({ 
+      success: true, 
+      message: "Booking already initiated",
+      booking: existingBooking,
+      razorpayOrderId: existingBooking.razorpayOrderId
     });
+  }
 
-    if (overlappingBookings.length > 0) {
-        throw new ExpressError(400, "Sorry, these dates are already booked by someone else.");
+  // Step 3: Start MongoDB Transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const listing = await Listing.findById(listingId).session(session);
+    if (!listing) throw new ExpressError(404, "Listing not found");
+
+    // Step 4: Availability Check (Overlap Logic)
+    // Checks if ANY confirmed booking exists that overlaps with requested dates
+    const overlappingBooking = await Booking.findOne({
+      listing: listingId,
+      status: "confirmed",
+      checkIn: { $lt: checkOutDate },
+      checkOut: { $gt: checkInDate }
+    }).session(session);
+
+    if (overlappingBooking) {
+      throw new ExpressError(409, "Room is not available for these dates");
     }
 
-    // 💰 Price Calculation
-    const listing = await Listing.findById(id);
-    if (!listing) {
-        throw new ExpressError(404, "Listing not found.");
-    }
+    // Step 5: Price Calculation
+    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 3600 * 24));
+    const totalPrice = nights * listing.price;
 
-    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-    const basePrice = nights * listing.price;
-    const grandTotal = basePrice + Math.round(basePrice * 0.14) + Math.round(basePrice * 0.05);
+    // Step 6: Create Booking (Status = Pending)
+    const [newBooking] = await Booking.create([{
+      user: userId,
+      listing: listingId,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      totalPrice,
+      guests,
+      idempotencyKey,
+      status: "pending",
+      paymentStatus: "pending"
+    }], { session });
 
-    // 💾 Save Booking as Pending
-    const newBooking = new Booking({
-        user: req.user.id || req.user._id,
-        listing: id,
-        checkIn: checkInDate,
-        checkOut: checkOutDate,
-        guests,
-        totalPrice: grandTotal,
-        paymentStatus: 'pending' 
-    });
-
-    await newBooking.save();
-
-    // 🚀 CREATE RAZORPAY ORDER (Naya asili logic)
+    // Step 7: Create Razorpay Order
     const options = {
-        amount: grandTotal * 100, // Razorpay amount Paise (₹1 = 100 paise) mein leta hai
-        currency: "INR",
-        receipt: `receipt_${newBooking._id}`,
+      amount: Math.round(totalPrice * 100), // Razorpay accepts paise
+      currency: "INR",
+      receipt: newBooking._id.toString()
     };
+    
+    const rzpOrder = await razorpay.orders.create(options);
 
-    const order = await razorpayInstance.orders.create(options);
+    // Store Razorpay Order ID in booking
+    newBooking.razorpayOrderId = rzpOrder.id;
+    await newBooking.save({ session });
 
-    // Database mein Order ID save kar do (Verificaton ke time kaam aayega)
-    newBooking.razorpayOrderId = order.id;
-    await newBooking.save();
+    // Step 8: Commit Transaction
+    await session.commitTransaction();
+    session.endSession();
 
-    // Frontend ko 'order' bhejenge taaki asli popup khul sake
-    res.status(201).json({ 
-        success: true, 
-        bookingId: newBooking._id, 
-        order: order 
+    // Step 9: Return Response for Frontend Checkout
+    res.status(201).json({
+      success: true,
+      booking: newBooking,
+      razorpayOrderId: rzpOrder.id,
+      amount: rzpOrder.amount,
+      key: process.env.RAZORPAY_KEY_ID
     });
-});
 
-// 2. VERIFY REAL PAYMENT (Hacker-Proof Validation)
-module.exports.confirmPayment = WrapAsync(async (req, res) => {
-    // Frontend se ab ye 4 cheezein aayengi!
-    const { bookingId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-    
-    if (!bookingId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-        throw new ExpressError(400, "Missing payment details.");
-    }
-    
-    // 🛡️ SECURITY CHECK: Khudka Signature generate karo aur match karo
-    const sign = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSign = crypto
-        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-        .update(sign.toString())
-        .digest("hex");
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
 
-    if (razorpay_signature === expectedSign) {
-        // Asli Payment Hai! Database mein status update karo
-        await Booking.findByIdAndUpdate(bookingId, { 
-            paymentStatus: 'paid',
-            razorpayPaymentId: razorpay_payment_id 
-        });
-        
-        res.status(200).json({ success: true, message: "Payment verified & Booking Confirmed!" });
-    } else {
-        // Fraud Payment!
-        await Booking.findByIdAndUpdate(bookingId, { paymentStatus: 'failed' });
-        throw new ExpressError(400, "Invalid payment signature. Fraud detected!");
-    }
-});
+// ── API 2: VERIFY PAYMENT ──
+exports.verifyPayment = async (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingId } = req.body;
+
+  // Step 1: Find the booking
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new ExpressError(404, "Booking not found");
+
+  // Step 2: Verify Signature (Crucial for security)
+  const body = razorpay_order_id + "|" + razorpay_payment_id;
+  const expectedSignature = crypto
+    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+    .update(body.toString())
+    .digest('hex');
+
+  const isAuthentic = expectedSignature === razorpay_signature;
+
+  if (isAuthentic) {
+    // Step 3: Payment Valid -> Confirm Booking
+    booking.status = "confirmed";
+    booking.paymentStatus = "paid";
+    booking.razorpayPaymentId = razorpay_payment_id;
+    await booking.save();
+
+    res.status(200).json({ success: true, message: "Booking confirmed!", booking });
+  } else {
+    // Payment Tampered / Failed
+    booking.status = "cancelled";
+    booking.paymentStatus = "failed";
+    await booking.save();
+
+    throw new ExpressError(400, "Payment verification failed. Booking cancelled.");
+  }
+};
+
+// ── API 3: GET MY BOOKINGS ──
+exports.getMyBookings = async (req, res) => {
+  const bookings = await Booking.find({ user: req.user._id })
+    .populate('listing', 'title location image price')
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({ success: true, count: bookings.length, bookings });
+};
+
+// ── API 4: CANCEL BOOKING ──
+exports.cancelBooking = async (req, res) => {
+  const { id } = req.params;
+  
+  // Note: Only cancelling confirmed/pending bookings. In real world, add Razorpay Refund logic here.
+  const booking = await Booking.findOneAndUpdate(
+    { _id: id, user: req.user._id, status: { $ne: "cancelled" } },
+    { status: "cancelled" },
+    { new: true }
+  );
+
+  if (!booking) throw new ExpressError(404, "Booking not found or already cancelled");
+
+  res.status(200).json({ success: true, message: "Booking cancelled successfully" });
+};

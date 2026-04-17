@@ -1,65 +1,126 @@
 import { Link } from "react-router-dom";
-import { FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa";
+import { 
+  FaInstagram, 
+  FaTwitter, 
+  FaGithub, 
+  FaLinkedin, 
+  FaYoutube, 
+  FaGlobe 
+} from "react-icons/fa";
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="footer bg-gray-100/50 backdrop-blur-sm shadow-sm mt-auto border-t border-gray-200">
-      <div className="mx-auto w-full max-w-7xl p-4 py-6 lg:py-8">
-        <div className="md:flex md:justify-between">
-          <div className="mb-6 md:mb-0">
-            <Link to="/" className="flex items-center">
-              <span className="self-center text-xl font-bold whitespace-nowrap text-rose-500">
+    <footer className="bg-gray-950 text-white">
+      
+      {/* Main Footer Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-12">
+          
+          {/* Brand Section */}
+          <div className="col-span-2">
+            <Link to="/" className="inline-block mb-6">
+              <span className="text-2xl font-bold text-white tracking-tight">
                 Nivaso
               </span>
             </Link>
+            <p className="text-gray-400 text-sm leading-relaxed mb-6 max-w-sm">
+              Making travel accessible and stays unforgettable. Discover unique homes and experiences around the world.
+            </p>
+            
+            {/* Social Icons */}
+            <div className="flex items-center gap-4">
+              {[
+                { icon: FaLinkedin, href: "https://linkedin.com", label: "LinkedIn" },
+                { icon: FaGithub, href: "https://github.com", label: "GitHub" },
+                { icon: FaInstagram, href: "https://instagram.com", label: "Instagram" },
+                { icon: FaTwitter, href: "https://twitter.com", label: "Twitter" },
+                { icon: FaYoutube, href: "https://youtube.com", label: "YouTube" },
+              ].map(({ icon: Icon, href, label }) => (
+                <a 
+                  key={label}
+                  href={href} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="w-10 h-10 bg-gray-800 hover:bg-emerald-500 rounded-lg flex items-center justify-center text-gray-400 hover:text-white transition-all duration-300"
+                  title={label}
+                >
+                  <Icon size={18} />
+                </a>
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-8 sm:gap-6 sm:grid-cols-3">
-            <div>
-              <h2 className="mb-6 text-sm font-semibold text-gray-900 uppercase">
-                Company
-              </h2>
-              <ul className="text-gray-500 font-medium">
-                <li className="mb-4">
-                  <Link to="#" className="hover:underline">About</Link>
+
+          {/* Company Links */}
+          <div>
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-5">Company</h3>
+            <ul className="space-y-3 text-sm">
+              {['About Us', 'Careers', 'Press', 'Blog', 'Investors'].map((item) => (
+                <li key={item}>
+                  <Link to="#" className="text-gray-400 hover:text-emerald-400 transition-colors">
+                    {item}
+                  </Link>
                 </li>
-                <li>
-                  <Link to="#" className="hover:underline">Careers</Link>
+              ))}
+            </ul>
+          </div>
+
+          {/* Hosting Links */}
+          <div>
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-5">Hosting</h3>
+            <ul className="space-y-3 text-sm">
+              {[
+                { label: 'Host your home', to: '/listings/new' },
+                { label: 'Hosting Resources', to: '#' },
+                { label: 'Community Forum', to: '#' },
+                { label: 'Host Guidelines', to: '#' },
+              ].map(({ label, to }) => (
+                <li key={label}>
+                  <Link to={to} className="text-gray-400 hover:text-emerald-400 transition-colors">
+                    {label}
+                  </Link>
                 </li>
-              </ul>
-            </div>
-            <div>
-              <h2 className="mb-6 text-sm font-semibold text-gray-900 uppercase">
-                Support
-              </h2>
-              <ul className="text-gray-500 font-medium">
-                <li className="mb-4">
-                  <Link to="#" className="hover:underline">Help Center</Link>
+              ))}
+            </ul>
+          </div>
+
+          {/* Support Links */}
+          <div>
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-5">Support</h3>
+            <ul className="space-y-3 text-sm">
+              {['Help Center', 'Safety Info', 'Cancellation', 'Trust & Safety', 'Contact Us'].map((item) => (
+                <li key={item}>
+                  <Link to="#" className="text-gray-400 hover:text-emerald-400 transition-colors">
+                    {item}
+                  </Link>
                 </li>
-                <li>
-                  <Link to="#" className="hover:underline">Safety</Link>
-                </li>
-              </ul>
-            </div>
+              ))}
+            </ul>
           </div>
         </div>
-        <hr className="my-6 border-gray-200 sm:mx-auto lg:my-8" />
-        <div className="sm:flex sm:items-center sm:justify-between">
-          <span className="text-sm text-gray-500 sm:text-center">
-            © 2024 Nivaso™. All Rights Reserved.
-          </span>
-          <div className="flex mt-4 sm:justify-center sm:mt-0 space-x-5">
-            <Link to="#" className="text-gray-500 hover:text-gray-900">
-              <FaFacebook className="w-4 h-4" />
-              <span className="sr-only">Facebook page</span>
-            </Link>
-            <Link to="#" className="text-gray-500 hover:text-gray-900">
-              <FaInstagram className="w-4 h-4" />
-              <span className="sr-only">Instagram page</span>
-            </Link>
-            <Link to="#" className="text-gray-500 hover:text-gray-900">
-              <FaTwitter className="w-4 h-4" />
-              <span className="sr-only">Twitter page</span>
-            </Link>
+      </div>
+
+      {/* Bottom Bar */}
+      <div className="border-t border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            {/* Copyright & Legal */}
+            <div className="flex flex-col md:flex-row items-center gap-2 md:gap-6 text-sm text-gray-500">
+              <span>© {currentYear} Nivaso, Inc. All rights reserved.</span>
+              <div className="flex gap-4">
+                <Link to="#" className="hover:text-gray-300 transition-colors">Privacy</Link>
+                <Link to="#" className="hover:text-gray-300 transition-colors">Terms</Link>
+                <Link to="#" className="hover:text-gray-300 transition-colors">Sitemap</Link>
+              </div>
+            </div>
+
+            {/* Language Selector */}
+            <button className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors">
+              <FaGlobe size={16} />
+              <span>English (IN)</span>
+            </button>
           </div>
         </div>
       </div>
