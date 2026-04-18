@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const WrapAsync = require('../utils/WrapAsync');
+const WrapAsync = require('../utils/Wrapasync');
 const { identifyUser } = require('../middleware/identity');
 const activityController = require('../controllers/activityController');
 
