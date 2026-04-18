@@ -4,7 +4,6 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
 
-const API_URL = "http://localhost:8081/listings";
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=800&q=80";
 
 export default function TrendingDestinations() {
@@ -15,6 +14,7 @@ export default function TrendingDestinations() {
   useEffect(() => {
     const fetchTrendingListings = async () => {
       try {
+        const API_URL = `${import.meta.env.VITE_API_URL}/listings`;
         const response = await axios.get(API_URL);
         let allListings = [];
         

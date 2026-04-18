@@ -101,6 +101,11 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
                 checkOut: "",
                 guests: 1,
               });
+              
+              // 3. 🚀 Redirect to mytrips page after 1 second
+              setTimeout(() => {
+                navigate("/mytrips");
+              }, 1000);
             }
           } catch (error) {
             console.error("Verification Error:", error);
