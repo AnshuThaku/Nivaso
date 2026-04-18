@@ -1,5 +1,5 @@
 const History = require('../models/HistoryModel');
-const Listing = require('../models/Listing'); // Assuming Listing model exists
+const Listing = require('../models/listing'); // ✅ Small 'l' karein// Assuming Listing model exists
 const ExpressError = require('../utils/ExpressError');
 
 // ── 1. TRACK SEARCH ──
