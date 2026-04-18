@@ -58,32 +58,33 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
         return showNotification("Failed to load Razorpay SDK. Check your connection.", "error");
       }
 
-      // 3. 🚀 Idempotency Key Generate karo (Double charge rokne ke liye)
+      // 3. 🚀 Idempotency Key Generate karo
       const idempotencyKey = crypto.randomUUID();
 
       // 4. Create Order on Backend
       const payload = {
         ...booking,
-        guests: Number(booking.guests), // Ensure number
-        totalPrice: grandTotal, // Send the calculated grand total
-        idempotencyKey // Send to backend
+        listingId: listing._id, 
+        guests: Number(booking.guests), 
+        totalPrice: grandTotal, 
+        idempotencyKey 
       };
 
-      const orderResponse = await axios.post(`${API_URL}/listings/${listing._id}/bookings`, payload, { withCredentials: true });
+      const orderResponse = await axios.post(`${API_URL}/bookings`, payload, { withCredentials: true });
       const { order, bookingId } = orderResponse.data;
 
       // 5. Open Razorpay Modal
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
-        amount: order.amount, // Ye paise mein hona chahiye (Backend se order.amount aayega)
-        currency: order.currency, // "INR"
+        amount: order.amount, 
+        currency: order.currency, 
         name: "nivaso.",
         description: `Booking for ${listing.title}`,
         order_id: order.id,
         handler: async function (response) {
           try {
             // 6. Verify Payment Signature
-            const verifyResponse = await axios.post(`${API_URL}/listings/${listing._id}/bookings/confirm-payment`, {
+            const verifyResponse = await axios.post(`${API_URL}/bookings/verify`, {
               bookingId: bookingId,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
@@ -91,10 +92,18 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
             }, { withCredentials: true });
 
             if (verifyResponse.data.success) {
+              // 1. Success message dikhao
               showNotification("Payment Successful! 🎉", "success");
-              navigate("/my-trips"); // Better to redirect to user's trips page
+              
+              // 2. 🚀 Form ko wapas empty (reset) kar do taaki user wahi rahe
+              setBooking({
+                checkIn: "",
+                checkOut: "",
+                guests: 1,
+              });
             }
           } catch (error) {
+            console.error("Verification Error:", error);
             showNotification("Payment Verification Failed! Contact support.", "error");
           }
         },
@@ -102,9 +111,10 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
           name: user?.username || "Guest User",
           email: user?.email || "guest@example.com",
         },
-        theme: { color: "#e11d48" }, // Match with your rose-600 Tailwind color
+        theme: { color: "#e11d48" },
       };
 
+      // 🚀 YE LINES MISSING THI AAPKE CODE MEIN (Inke bina popup nahi khulega)
       const paymentObject = new window.Razorpay(options);
       paymentObject.on("payment.failed", function (response) {
         showNotification(response.error.description, "error");
@@ -120,7 +130,6 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
 
   return (
     <div className="sticky top-28 self-start z-10 bg-white border border-gray-200 rounded-xl p-6 shadow-xl ring-1 ring-gray-200">  
-      {/* ... (Aapka baaki ka UI same rahega, usme koi issue nahi hai) ... */}
           <div className="flex justify-between items-baseline mb-6">
             <div>
                 <span className="text-2xl font-semibold text-gray-900">₹{listing.price.toLocaleString("en-IN")}</span>
@@ -154,7 +163,6 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
                         value={booking.checkOut}
                         onChange={handleBookingChange}
                         className="w-full text-sm outline-none bg-transparent text-gray-600 cursor-pointer p-0 m-0"
-                        // Checkout date checkIn ke baad ki hi select ho sakti hai
                         min={booking.checkIn ? new Date(new Date(booking.checkIn).getTime() + 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
                     />
                 </div>

@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import ListingCard from "../../components/Listing/ListingCard";
 import { FaHome } from "react-icons/fa";
+import { motion } from 'framer-motion';
 
 const Listings = () => {
   const [listings, setListings] = useState([]);
@@ -77,18 +78,42 @@ const Listings = () => {
   }, [loading, hasMore]);
 
   return (
-    <div className="bg-white min-h-screen pt-8 pb-16">    
+    <div className="bg-white min-h-screen pt-25 pb-16">    
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         
-        {/* 🔥 Premium Header Section */}
-        <div className="mb-8 border-b border-gray-100 pb-6">
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            {searchQuery ? `Search results for "${searchQuery}"` : categoryQuery ? `${categoryQuery} Escapes` : 'Explore All Homes'}
-          </h1>
-          <p className="text-gray-500 mt-2 font-medium">
-            Discover {listings.length}+ places to stay
-          </p>
-        </div>
+     {/* 🔥 Premium Header Section */}
+<motion.div 
+  initial={{ opacity: 0, y: -10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5 }}
+  className="mb-8 border-b border-gray-100 pb-8"
+>
+  <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight flex flex-wrap gap-2">
+    {searchQuery ? (
+      <>
+        Search results for <span className="text-rose-500 capitalize">{searchQuery}</span>
+      </>
+    ) : categoryQuery ? (
+      <>
+        <span className="text-rose-500 capitalize">{categoryQuery}</span> Escapes
+      </>
+    ) : (
+      'Explore All Homes'
+    )}
+  </h1>
+  
+  <p className="text-gray-500 mt-2 text-base md:text-lg font-medium flex items-center gap-2">
+    Discover {listings.length} {listings.length === 1 ? 'place' : 'places'} to stay
+    
+    {/* Optional: Agar search query hai toh aage ek chota sa dot aur extra text dikhane ke liye */}
+    {(searchQuery || categoryQuery) && (
+      <>
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-300 mx-1" />
+        <span className="text-gray-400">Available right now</span>
+      </>
+    )}
+  </p>
+</motion.div>
 
         {/* Listings Grid */}
         <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">

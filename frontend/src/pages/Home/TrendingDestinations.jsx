@@ -5,8 +5,6 @@ import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
 
 const API_URL = "http://localhost:8081/listings";
-
-// Fallback image in case network fails
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=800&q=80";
 
 export default function TrendingDestinations() {
@@ -18,10 +16,8 @@ export default function TrendingDestinations() {
     const fetchTrendingListings = async () => {
       try {
         const response = await axios.get(API_URL);
-        
         let allListings = [];
         
-        // Aapke DB Response Object ke hisaab se mapping
         if (response.data && response.data.success && Array.isArray(response.data.listings)) {
           allListings = response.data.listings;
         }
@@ -30,10 +26,8 @@ export default function TrendingDestinations() {
           throw new Error("No listings found in the database.");
         }
 
-        // Sirf top 4 listings ko slice karke state me daal diya
         const topListings = allListings.slice(0, 4);
         setTrendingListings(topListings);
-
       } catch (error) {
         console.error("Error fetching trending listings:", error.message);
       } finally {
@@ -44,13 +38,14 @@ export default function TrendingDestinations() {
     fetchTrendingListings();
   }, []);
 
-  // 🕒 Loading State (Skeleton Loader)
+  // 🕒 Loading State (Skeleton Loader with Mobile Swipe)
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* 🚀 Updated Container for Skeleton */}
+        <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6 overflow-x-auto md:overflow-visible pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="flex flex-col gap-3">
+            <div key={i} className="flex flex-col gap-3 min-w-[85%] sm:min-w-[45%] md:min-w-0 flex-shrink-0">
               <div className="bg-gray-200 animate-pulse rounded-2xl h-72 w-full" />
               <div className="bg-gray-200 animate-pulse h-5 w-3/4 rounded-md" />
               <div className="bg-gray-200 animate-pulse h-4 w-1/2 rounded-md" />
@@ -71,7 +66,7 @@ export default function TrendingDestinations() {
   }
 
   return (
-    <section className="w-full bg-white py-16 md:py-24">
+    <section className="w-full bg-white py-16 md:py-24 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header Section */}
@@ -90,26 +85,26 @@ export default function TrendingDestinations() {
           
           <button 
             onClick={() => navigate('/listings')}
-            className="mt-6 md:mt-0 px-8 py-3 bg-gray-900 text-white rounded-full font-bold hover:bg-rose-500 transition-all duration-300 shadow-lg shadow-gray-200"
+            className="hidden md:block mt-6 md:mt-0 px-8 py-3 bg-gray-900 text-white rounded-full font-bold hover:bg-rose-500 transition-all duration-300 shadow-lg shadow-gray-200"
           >
             Explore All
           </button>
         </div>
 
-        {/* 🏡 Property Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        {/* 🏡 Property Cards - 🚀 HORIZONTAL SCROLL ON MOBILE, GRID ON DESKTOP */}
+        <div 
+          className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-8 overflow-x-auto snap-x snap-mandatory md:overflow-visible pb-8 md:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} // Firefox & IE support for hidden scrollbar
+        >
           {trendingListings.map((listing, index) => {
             
-            // 🚀 THE ULTIMATE FIX: Extracting image from the "images" array
             let listingImage = FALLBACK_IMAGE;
-            
             if (Array.isArray(listing.images) && listing.images.length > 0) {
-                // Aapke JSON ke according pehli image ka URL chahiye
                 listingImage = listing.images[0].url; 
             }
 
             const price = listing.price ? `₹${listing.price.toLocaleString('en-IN')}` : "Price on request";
-            const location = listing.location ? listing.location.split(',')[0] : "Location"; // "Indore, Madhya Pradesh" ko "Indore" kar dega
+            const location = listing.location ? listing.location.split(',')[0] : "Location"; 
 
             return (
               <motion.div 
@@ -119,7 +114,8 @@ export default function TrendingDestinations() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 onClick={() => navigate(`/listings/${listing._id}`)} 
-                className="group cursor-pointer flex flex-col gap-3"
+                // 🚀 Nayi classes: min-w-[85%] mobile par width maintain karega, snap-start usko center karega swipe par
+                className="group cursor-pointer flex flex-col gap-3 min-w-[85%] sm:min-w-[45%] md:min-w-0 flex-shrink-0 snap-start"
               >
                 {/* Image Wrapper */}
                 <div className="relative w-full h-72 md:h-80 overflow-hidden rounded-2xl bg-gray-100 shadow-sm group-hover:shadow-md transition-shadow duration-300">
@@ -166,6 +162,15 @@ export default function TrendingDestinations() {
             );
           })}
         </div>
+
+        {/* Mobile View All Button (Shows only on mobile below the swiper) */}
+        <button 
+          onClick={() => navigate('/listings')}
+          className="md:hidden w-full mt-2 py-4 bg-gray-900 text-white rounded-full font-bold shadow-lg active:scale-95 transition-transform"
+        >
+          Explore All Stays
+        </button>
+
       </div>
     </section>
   );

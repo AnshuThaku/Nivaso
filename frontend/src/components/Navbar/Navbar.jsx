@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Globe, ChevronDown, User, Menu, X, Home, LogIn, UserPlus } from 'lucide-react'; 
+import { Search, Globe, ChevronDown, User, Menu, X, Home, LogIn, UserPlus, LogOut, Map } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
 import DesktopSearch from './DesktopSearch';
 import MobileSearchModal from './MobileSearchModel';
+
+import { useAuth } from '../../context/AuthContext'; 
 
 const Navbar = () => {
   const [isMobileModalOpen, setIsMobileModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false); // 🔥 Restored Desktop Dropdown State
+  const [isProfileOpen, setIsProfileOpen] = useState(false); 
   
-  const [user, setUser] = useState(null); 
+  const { user, logout } = useAuth(); 
 
   const sidebarRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -19,7 +21,6 @@ const Navbar = () => {
   const location = useLocation();
   const isHomePage = location.pathname === '/';
 
-  // Desktop Scroll logic
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 500);
@@ -28,7 +29,6 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Click outside to close sidebar & desktop dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (sidebarRef.current && !sidebarRef.current.contains(event.target)) setIsSidebarOpen(false);
@@ -44,6 +44,15 @@ const Navbar = () => {
     setIsProfileOpen(false);
   };
 
+  const handleLogout = async () => {
+    if (logout) {
+      await logout(); 
+    }
+    setIsProfileOpen(false);
+    setIsSidebarOpen(false);
+    navigate('/'); 
+  };
+
   const showSearch = !isHomePage || isScrolled;
 
   return (
@@ -56,14 +65,12 @@ const Navbar = () => {
       `}>
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between relative">
           
-          {/* Hamburger (Mobile Left) */}
           <div className="md:hidden flex items-center">
             <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-gray-700">
               <Menu size={24} />
             </button>
           </div>
 
-          {/* Logo */}
           <div className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0">
             <Link to="/">
               <span className={`text-rose-500 font-black tracking-tighter transition-all ${isScrolled ? 'text-xl' : 'text-2xl'} max-md:text-xl`}>
@@ -72,19 +79,17 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Desktop Search */}
           <div className={`hidden md:flex flex-1 justify-center transition-all duration-500 ${
             showSearch ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'
           }`}>
              <DesktopSearch />
           </div>
 
-          {/* Mobile Search Icon */}
           <div className="md:hidden flex items-center">
             <button onClick={() => setIsMobileModalOpen(true)} className="p-2 text-rose-500"><Search size={22} /></button>
           </div>
 
-          {/* 🚀 Desktop User Menu (Dropdown Restored) */}
+          {/* 🚀 Desktop User Menu */}
           <div className="hidden md:flex items-center justify-end gap-5 relative" ref={dropdownRef}>
              <Link to="/listings/new" className={`flex items-center gap-2 font-bold text-sm transition-colors ${
                isScrolled || !isHomePage ? 'text-slate-500 hover:text-rose-500' : 'text-white hover:text-gray-200'
@@ -92,18 +97,16 @@ const Navbar = () => {
                <Globe size={18} /><span>Host Your Home</span>
              </Link>
 
-             {/* Profile Trigger */}
              <div 
                onClick={() => setIsProfileOpen(!isProfileOpen)} 
                className="flex items-center gap-2 cursor-pointer group"
              >
                 <ChevronDown size={14} className={`${isScrolled || !isHomePage ? 'text-slate-400' : 'text-white'} ${isProfileOpen ? 'rotate-180 text-rose-500' : ''} transition-all`} />
                 <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white shadow-sm group-hover:shadow-md transition-all">
-                  {user ? <img src={user.image} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-300"><User size={22} /></div>}
+                  {user?.image ? <img src={user.image} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-300"><User size={22} /></div>}
                 </div>
              </div>
 
-             {/* 🔥 Desktop Dropdown Menu */}
              <AnimatePresence>
                {isProfileOpen && (
                  <motion.div 
@@ -120,11 +123,24 @@ const Navbar = () => {
                           <button onClick={() => handleNavigation('/login')} className="text-left px-5 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition border-b border-gray-100">Log in</button>
                         </>
                       ) : (
-                        <button onClick={() => handleNavigation('/profile')} className="text-left px-5 py-3 text-sm font-bold text-gray-900 hover:bg-gray-50 transition border-b border-gray-100">My Profile</button>
+                        <>
+                          {/* 🚀 DESKTOP PROFILE CLICK */}
+                          <button onClick={() => handleNavigation('/profile')} className="text-left px-5 py-3 text-sm font-bold text-gray-900 hover:bg-gray-50 transition">My Profile</button>
+                          <button onClick={() => handleNavigation('/my-trips')} className="text-left px-5 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition border-b border-gray-100">My Trips</button>
+                        </>
                       )}
+                      
                       <div className="h-[1px] bg-gray-100 my-1"></div>
+                      
                       <button onClick={() => handleNavigation('/listings/new')} className="text-left px-5 py-3 text-sm text-gray-600 hover:bg-gray-50 transition">Host your home</button>
                       <button onClick={() => handleNavigation('/help')} className="text-left px-5 py-3 text-sm text-gray-600 hover:bg-gray-50 transition">Help Center</button>
+                      
+                      {user && (
+                        <>
+                          <div className="h-[1px] bg-gray-100 my-1"></div>
+                          <button onClick={handleLogout} className="text-left px-5 py-3 text-sm font-medium text-rose-600 hover:bg-rose-50 transition">Log out</button>
+                        </>
+                      )}
                    </div>
                  </motion.div>
                )}
@@ -146,13 +162,18 @@ const Navbar = () => {
             >
               <div className="bg-slate-50 p-6 pt-10 border-b border-gray-100 relative text-left">
                 <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-white rounded-full transition"><X size={20} /></button>
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-white border-2 border-rose-100 flex items-center justify-center overflow-hidden">
-                    {user ? <img src={user.image} className="w-full h-full object-cover" /> : <User size={28} className="text-slate-200" />}
+                
+                {/* 🚀 MOBILE PROFILE HEADER CLICK (Avatar + Name par tap karne se profile khulega) */}
+                <div 
+                  onClick={() => user ? handleNavigation('/profile') : handleNavigation('/login')}
+                  className={`flex items-center gap-4 ${user ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                >
+                  <div className="w-14 h-14 rounded-full bg-white border-2 border-rose-100 flex items-center justify-center overflow-hidden shadow-sm">
+                    {user?.image ? <img src={user.image} className="w-full h-full object-cover" /> : <User size={28} className="text-slate-200" />}
                   </div>
                   <div className="text-left">
-                    <h3 className="font-bold text-gray-900 truncate w-32">{user ? user.name : 'Nivaso User'}</h3>
-                    <p className="text-xs text-gray-500">{user ? 'View Profile' : 'Welcome to Nivaso'}</p>
+                    <h3 className="font-bold text-gray-900 truncate w-32">{user ? user.username || user.name : 'Nivaso Guest'}</h3>
+                    <p className="text-xs text-rose-500 font-semibold">{user ? 'View Profile' : 'Welcome to Nivaso'}</p>
                   </div>
                 </div>
               </div>
@@ -160,14 +181,21 @@ const Navbar = () => {
               <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1 text-left">
                 <button onClick={() => handleNavigation('/')} className="flex items-center gap-4 px-4 py-3 text-gray-700 font-bold hover:bg-rose-50 rounded-xl transition"><Home size={20}/> Home</button>
                 <button onClick={() => handleNavigation('/listings/new')} className="flex items-center gap-4 px-4 py-3 text-gray-700 font-bold hover:bg-rose-50 rounded-xl transition"><Globe size={20}/> Host your home</button>
+                
                 <div className="h-[1px] bg-gray-100 my-2 mx-4"></div>
+                
                 {!user ? (
                   <>
                     <button onClick={() => handleNavigation('/signup')} className="flex items-center gap-4 px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl transition"><UserPlus size={20}/> Sign up</button>
                     <button onClick={() => handleNavigation('/login')} className="flex items-center gap-4 px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl transition"><LogIn size={20}/> Log in</button>
                   </>
                 ) : (
-                  <button onClick={() => handleNavigation('/profile')} className="flex items-center gap-4 px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl transition"><User size={20}/> My Profile</button>
+                  <>
+                    <button onClick={() => handleNavigation('/profile')} className="flex items-center gap-4 px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl transition"><User size={20}/> My Profile</button>
+                    <button onClick={() => handleNavigation('/my-trips')} className="flex items-center gap-4 px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-xl transition"><Map size={20}/> My Trips</button>
+                    <div className="h-[1px] bg-gray-100 my-2 mx-4"></div>
+                    <button onClick={handleLogout} className="flex items-center gap-4 px-4 py-3 text-rose-600 font-medium hover:bg-rose-50 rounded-xl transition"><LogOut size={20}/> Log out</button>
+                  </>
                 )}
               </div>
             </motion.div>

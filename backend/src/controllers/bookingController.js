@@ -6,6 +6,7 @@ const razorpay = require('../config/RazorPayConfig');
 const ExpressError = require('../utils/ExpressError');
 
 // ── API 1: INITIATE BOOKING (Transaction + Razorpay Order) ──
+// ── API 1: INITIATE BOOKING (Transaction + Razorpay Order) ──
 exports.initiateBooking = async (req, res) => {
   const { listingId, checkIn, checkOut, guests, idempotencyKey } = req.body;
   const userId = req.user._id;
@@ -19,14 +20,18 @@ exports.initiateBooking = async (req, res) => {
   if (checkInDate < now) throw new ExpressError(400, "Check-in cannot be in the past");
   if (checkInDate >= checkOutDate) throw new ExpressError(400, "Check-out must be after check-in");
 
-  // Step 2: Idempotency Check
+  // Step 2: Idempotency Check (Fixed response for frontend)
   let existingBooking = await Booking.findOne({ idempotencyKey });
   if (existingBooking) {
     return res.status(200).json({ 
       success: true, 
       message: "Booking already initiated",
-      booking: existingBooking,
-      razorpayOrderId: existingBooking.razorpayOrderId
+      bookingId: existingBooking._id, // 🔥 MATCHED WITH FRONTEND
+      order: { // 🔥 MATCHED WITH FRONTEND
+        id: existingBooking.razorpayOrderId,
+        amount: existingBooking.totalPrice * 100,
+        currency: "INR"
+      }
     });
   }
 
@@ -39,7 +44,6 @@ exports.initiateBooking = async (req, res) => {
     if (!listing) throw new ExpressError(404, "Listing not found");
 
     // Step 4: Availability Check (Overlap Logic)
-    // Checks if ANY confirmed booking exists that overlaps with requested dates
     const overlappingBooking = await Booking.findOne({
       listing: listingId,
       status: "confirmed",
@@ -51,9 +55,12 @@ exports.initiateBooking = async (req, res) => {
       throw new ExpressError(409, "Room is not available for these dates");
     }
 
-    // Step 5: Price Calculation
+    // Step 5: Price Calculation (🔥 FIXED: Matched with Frontend Logic)
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 3600 * 24));
-    const totalPrice = nights * listing.price;
+    const basePrice = nights * listing.price;
+    const serviceFee = Math.round(basePrice * 0.14);
+    const taxes = Math.round(basePrice * 0.05);
+    const grandTotal = basePrice + serviceFee + taxes; // Exact amount to charge!
 
     // Step 6: Create Booking (Status = Pending)
     const [newBooking] = await Booking.create([{
@@ -61,7 +68,7 @@ exports.initiateBooking = async (req, res) => {
       listing: listingId,
       checkIn: checkInDate,
       checkOut: checkOutDate,
-      totalPrice,
+      totalPrice: grandTotal, // Updated to grandTotal
       guests,
       idempotencyKey,
       status: "pending",
@@ -70,7 +77,7 @@ exports.initiateBooking = async (req, res) => {
 
     // Step 7: Create Razorpay Order
     const options = {
-      amount: Math.round(totalPrice * 100), // Razorpay accepts paise
+      amount: Math.round(grandTotal * 100), // Razorpay accepts paise (₹1 = 100 paise)
       currency: "INR",
       receipt: newBooking._id.toString()
     };
@@ -85,12 +92,15 @@ exports.initiateBooking = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    // Step 9: Return Response for Frontend Checkout
+    // Step 9: Return Response for Frontend Checkout (🔥 FIXED RESPONSE FORMAT)
     res.status(201).json({
       success: true,
-      booking: newBooking,
-      razorpayOrderId: rzpOrder.id,
-      amount: rzpOrder.amount,
+      bookingId: newBooking._id, // Matched: const { bookingId } = data
+      order: {                   // Matched: const { order } = data
+        id: rzpOrder.id,
+        amount: rzpOrder.amount,
+        currency: rzpOrder.currency
+      },
       key: process.env.RAZORPAY_KEY_ID
     });
 
@@ -100,7 +110,6 @@ exports.initiateBooking = async (req, res) => {
     throw error;
   }
 };
-
 // ── API 2: VERIFY PAYMENT ──
 exports.verifyPayment = async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, bookingId } = req.body;
@@ -138,10 +147,9 @@ exports.verifyPayment = async (req, res) => {
 
 // ── API 3: GET MY BOOKINGS ──
 exports.getMyBookings = async (req, res) => {
-  const bookings = await Booking.find({ user: req.user._id })
-    .populate('listing', 'title location image price')
+ const bookings = await Booking.find({ user: req.user._id })
+    .populate('listing', 'title location images price') // 🚀 'image' ko 'images' kar diya
     .sort({ createdAt: -1 });
-
   res.status(200).json({ success: true, count: bookings.length, bookings });
 };
 

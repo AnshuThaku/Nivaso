@@ -20,12 +20,17 @@ import EditListing from "./pages/Listing/Editlisting";
 import ProfilePage from "./pages/Profile/ProfilePage";
 import ForgotPassword from "./components/ForgetPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import BookingCard from "./components/Listing/BookingCard";
+import MyTrips from "./pages/Mytrip";
+import { Scroll } from "lucide-react";
+import ScrollToTop from "./components/ScrollToTop";
 
 const AnimatedRoutes = () => {
     const location = useLocation();
 
     return (
         <AnimatePresence mode="wait">
+            <ScrollToTop /> {/* 🚀 Scroll to top on route change */}
             <Routes location={location} key={location.pathname}>
                 {/* 🔥 FIXED: Home page mapped to "/" */}
                 <Route path="/" element={<PageTransition><Home /></PageTransition>} />
@@ -33,6 +38,7 @@ const AnimatedRoutes = () => {
                 <Route path="/listings" element={<PageTransition><Listings /></PageTransition>} />
                 <Route path="/listings/new" element={<PageTransition><NewListing /></PageTransition>} />
                 <Route path="/listings/:id" element={<PageTransition><ShowListing /></PageTransition>} />
+                <Route path="/bookings" element={<PageTransition><BookingCard /></PageTransition>} />
                 <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
                 <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
                 <Route path="/listings/:id/edit" element={<PageTransition><EditListing /></PageTransition>} />
@@ -40,6 +46,7 @@ const AnimatedRoutes = () => {
                 <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
                 <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
                 <Route path="/reset-password/:token" element={<PageTransition><ResetPassword/></PageTransition>} />
+                <Route path="/my-trips" element={<PageTransition><MyTrips /></PageTransition>} />
             </Routes>
         </AnimatePresence>
     );
