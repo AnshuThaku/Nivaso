@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/axiosInstance'; // Use our custom instance
+import api from '../utils/axiosinstance';
 import useDebounce from '../hooks/useDebounce';
 
 const SearchContext = createContext();
@@ -15,7 +15,6 @@ export const SearchProvider = ({ children }) => {
   const [recentSearches, setRecentSearches] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
   // Use our custom hook! (300ms delay)
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
