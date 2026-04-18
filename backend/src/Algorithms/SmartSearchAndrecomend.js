@@ -1,5 +1,5 @@
 const History = require('../models/HistoryModel');
-const Listing = require('../models/Listing');
+const Listing = require('../models/listing');
 
 // ── 1. GET RECOMMENDATIONS ──
 exports.getRecommendations = async (req, res) => {
