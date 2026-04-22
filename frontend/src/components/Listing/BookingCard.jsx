@@ -1,6 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
-import { FaStar } from "react-icons/fa";
+import { FaStar, FaRegFileAlt, FaTimesCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const BookingCard = ({ listing, user, showNotification, API_URL }) => {
@@ -26,7 +26,6 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
     });
   };
 
-  // 🔥 Dynamically calculate totals
   const calculateTotal = () => {
     if (!booking.checkIn || !booking.checkOut) return 0;
     const start = new Date(booking.checkIn);
@@ -41,7 +40,6 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
   const grandTotal = total + serviceFee + taxes;
 
   const handleReserveClick = async () => {
-    // 1. Basic Validations
     if (!user) return showNotification("Please login to book this place", "error");
     if (!booking.checkIn || !booking.checkOut) return showNotification("Please select check-in and check-out dates", "error");
     
@@ -51,17 +49,14 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
     setIsProcessing(true);
 
     try {
-      // 2. Load Razorpay
       const res = await loadRazorpayScript();
       if (!res) {
         setIsProcessing(false);
-        return showNotification("Failed to load Razorpay SDK. Check your connection.", "error");
+        return showNotification("Failed to load Razorpay SDK", "error");
       }
 
-      // 3. 🚀 Idempotency Key Generate karo
       const idempotencyKey = crypto.randomUUID();
 
-      // 4. Create Order on Backend
       const payload = {
         ...booking,
         listingId: listing._id, 
@@ -73,7 +68,6 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
       const orderResponse = await axios.post(`${API_URL}/bookings`, payload, { withCredentials: true });
       const { order, bookingId } = orderResponse.data;
 
-      // 5. Open Razorpay Modal
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
         amount: order.amount, 
@@ -83,7 +77,6 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
         order_id: order.id,
         handler: async function (response) {
           try {
-            // 6. Verify Payment Signature
             const verifyResponse = await axios.post(`${API_URL}/bookings/verify`, {
               bookingId: bookingId,
               razorpay_order_id: response.razorpay_order_id,
@@ -92,24 +85,17 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
             }, { withCredentials: true });
 
             if (verifyResponse.data.success) {
-              // 1. Success message dikhao
               showNotification("Payment Successful! 🎉", "success");
               
-              // 2. 🚀 Form ko wapas empty (reset) kar do taaki user wahi rahe
-              setBooking({
-                checkIn: "",
-                checkOut: "",
-                guests: 1,
-              });
+              setBooking({ checkIn: "", checkOut: "", guests: 1 });
               
-              // 3. 🚀 Redirect to mytrips page after 1 second
+              // 🚀 1 Second delay then redirect to my-trips
               setTimeout(() => {
-                navigate("/mytrips");
+                navigate("/my-trips");
               }, 1000);
             }
           } catch (error) {
-            console.error("Verification Error:", error);
-            showNotification("Payment Verification Failed! Contact support.", "error");
+            showNotification("Payment Verification Failed!", "error");
           }
         },
         prefill: {
@@ -119,11 +105,7 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
         theme: { color: "#e11d48" },
       };
 
-      // 🚀 YE LINES MISSING THI AAPKE CODE MEIN (Inke bina popup nahi khulega)
       const paymentObject = new window.Razorpay(options);
-      paymentObject.on("payment.failed", function (response) {
-        showNotification(response.error.description, "error");
-      });
       paymentObject.open();
 
     } catch (error) {
@@ -135,7 +117,7 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
 
   return (
     <div className="sticky top-28 self-start z-10 bg-white border border-gray-200 rounded-xl p-6 shadow-xl ring-1 ring-gray-200">  
-          <div className="flex justify-between items-baseline mb-6">
+        <div className="flex justify-between items-baseline mb-6">
             <div>
                 <span className="text-2xl font-semibold text-gray-900">₹{listing.price.toLocaleString("en-IN")}</span>
                 <span className="text-gray-600 font-light"> night</span>
@@ -198,18 +180,18 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
         <p className="text-center text-sm text-gray-500 mb-6">You won't be charged yet</p>
         
         {total > 0 && (
-            <>
+            <div className="animate-fade-in">
                 <div className="space-y-3 text-gray-600 text-base">
                     <div className="flex justify-between">
-                        <span className="underline decoration-gray-300">₹{listing.price.toLocaleString("en-IN")} x {total/listing.price} nights</span>
+                        <span className="underline">₹{listing.price.toLocaleString("en-IN")} x {total/listing.price} nights</span>
                         <span>₹{total.toLocaleString("en-IN")}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="underline decoration-gray-300">Nivaso service fee</span>
+                        <span className="underline">Nivaso service fee</span>
                         <span>₹{serviceFee.toLocaleString("en-IN")}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="underline decoration-gray-300">Taxes</span>
+                        <span className="underline">Taxes</span>
                         <span>₹{taxes.toLocaleString("en-IN")}</span>
                     </div>
                 </div>
@@ -218,7 +200,7 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
                     <span>Total before taxes</span>
                     <span>₹{grandTotal.toLocaleString("en-IN")}</span>
                 </div>
-            </>
+            </div>
         )}
     </div>
   );

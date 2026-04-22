@@ -1,210 +1,247 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-import { FaSuitcase, FaMapMarkerAlt, FaCalendarCheck, FaRegClock, FaChevronLeft } from "react-icons/fa";
+import { 
+  FaSuitcase, FaMapMarkerAlt, FaCalendarCheck, 
+  FaRegClock, FaChevronLeft, FaRegFileAlt, 
+  FaTimesCircle, FaArrowRight 
+} from "react-icons/fa";
 
 const MyTrips = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL;
 
-  useEffect(() => {
-    const fetchMyTrips = async () => {
+  const fetchMyTrips = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/bookings/my-bookings`, { 
+        withCredentials: true 
+      });
+      if (response.data.success) {
+        setBookings(response.data.bookings);
+      }
+    } catch (error) {
+      if (error.response?.status === 401) navigate("/login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { 
+    fetchMyTrips(); 
+  }, []);
+
+  const handleCancelBooking = async (bookingId) => {
+    if (window.confirm("Are you sure you want to cancel? Refund policy will apply.")) {
       try {
-        // 🚀 Backend se directly sirf bookings fetch kar rahe hain
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/bookings/my-bookings`, {
-          withCredentials: true, 
+        const response = await axios.delete(`${API_URL}/bookings/${bookingId}`, { 
+          withCredentials: true 
         });
-        
         if (response.data.success) {
-          setBookings(response.data.bookings);
+          setBookings(prev => prev.map(b => 
+            b._id === bookingId ? { ...b, status: 'cancelled' } : b
+          ));
         }
       } catch (error) {
-        console.error("Fetch trips error:", error);
-        // Agar unauthorized hai, toh wapas login par bhej do
-        if (error.response?.status === 401) {
-          navigate("/login");
-        }
-      } finally {
-        setLoading(false);
+        alert(error.response?.data?.message || "Cancellation failed");
       }
-    };
-    
-    fetchMyTrips();
-  }, [navigate]);
+    }
+  };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[80vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-600"></div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600"></div>
+    </div>
+  );
 
-  // Safely filter bookings
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Ignore time for accurate date comparison
-  
+  today.setHours(0, 0, 0, 0);
+
   const validBookings = bookings.filter(b => b && b.listing);
-  const upcomingTrips = validBookings.filter(b => new Date(b.checkIn) >= today);
-  const pastTrips = validBookings.filter(b => new Date(b.checkIn) < today);
+  const upcomingTrips = validBookings.filter(b => 
+    new Date(b.checkIn) >= today && b.status !== 'cancelled'
+  );
+  const pastOrCancelled = validBookings.filter(b => 
+    new Date(b.checkIn) < today || b.status === 'cancelled'
+  );
 
   return (
-    <div className="bg-gray-50 min-h-screen pb-20 pt-20 md:pt-28">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="bg-[#f7f7f7] min-h-screen pb-20 pt-24 md:pt-32">
+      <div className="max-w-6xl mx-auto px-6">
         
-        {/* 🚀 Header with Back Button (Mobile) */}
-        <div className="mb-10 flex flex-col gap-2">
-          <button
-            onClick={() => navigate(-1)}
-            className="md:hidden flex items-center gap-2 text-gray-600 mb-4 hover:text-gray-900 transition-colors w-max"
+        {/* Header Section */}
+        <div className="mb-12">
+          <button 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-gray-600 hover:text-black transition-all mb-4 font-medium"
           >
-            <FaChevronLeft size={14} /> Back
+            <FaChevronLeft size={12} /> Home
           </button>
           <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">Trips</h1>
-          <p className="text-gray-500 text-lg font-medium">Manage your upcoming stays and past adventures.</p>
         </div>
 
-        <div className="space-y-16 animate-fade-in-up">
-          
-          {/* Upcoming Trips */}
+        <div className="space-y-20">
+          {/* Section 1: Upcoming */}
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2 border-b border-gray-200 pb-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8 tracking-tight border-b border-gray-200 pb-4">
               Upcoming Reservations
             </h2>
-            
             {upcomingTrips.length === 0 ? (
-              <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-gray-300 shadow-sm flex flex-col items-center justify-center">
-                <div className="bg-rose-50 h-24 w-24 rounded-full flex items-center justify-center mb-6">
-                  <FaSuitcase className="text-rose-500 text-4xl" />
+              <div className="bg-white rounded-3xl p-16 text-center border border-gray-200 shadow-sm">
+                <div className="bg-rose-50 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <FaSuitcase className="text-rose-500 text-3xl" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">No trips booked... yet!</h3>
-                <p className="text-gray-500 mb-8 max-w-md mx-auto">Time to dust off your bags and start planning your next great adventure with Nivaso.</p>
-                <Link to="/listings" className="bg-rose-600 text-white px-8 py-3.5 rounded-full font-bold hover:bg-rose-700 transition-colors shadow-md hover:shadow-lg active:scale-95">
-                  Start Exploring
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">No trips booked... yet!</h3>
+                <p className="text-gray-500 mb-8 max-w-sm mx-auto">Time to dust off your bags and start planning your next great adventure.</p>
+                <Link to="/" className="inline-flex items-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-xl font-bold hover:bg-black transition-all shadow-lg active:scale-95">
+                  Start Exploring <FaArrowRight size={14}/>
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {upcomingTrips.map((booking) => (
-                  <BookingCard key={booking._id} booking={booking} />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {upcomingTrips.map(b => (
+                  <BookingCardItem key={b._id} booking={b} onCancel={handleCancelBooking} />
                 ))}
               </div>
             )}
           </section>
 
-          {/* Past Trips Section */}
-          {pastTrips.length > 0 && (
+          {/* Section 2: History */}
+          {pastOrCancelled.length > 0 && (
             <section>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2 border-b border-gray-200 pb-4">
+              <h2 className="text-2xl font-bold text-gray-900 mb-8 tracking-tight border-b border-gray-200 pb-4">
                 Where you've been
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-80 hover:opacity-100 transition-opacity duration-300">
-                {pastTrips.map((booking) => (
-                  <BookingCard key={booking._id} booking={booking} isPast={true} />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-90">
+                {pastOrCancelled.map(b => (
+                  <BookingCardItem key={b._id} booking={b} isPast={true} onCancel={handleCancelBooking} />
                 ))}
               </div>
             </section>
           )}
-          
         </div>
       </div>
     </div>
   );
 };
 
-// 💳 The "Premium Ticket" Booking Card (Same Logic as Profile)
-const BookingCard = ({ booking, isPast }) => {
-  const navigate = useNavigate(); 
+const BookingCardItem = ({ booking, isPast, onCancel }) => {
+  const navigate = useNavigate();
   const checkIn = new Date(booking.checkIn);
   const checkOut = new Date(booking.checkOut);
-  
   const formatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
 
-  // 🚀 Image extraction logic
-  let displayImage = "https://images.unsplash.com/photo-1502672260266-1c1ea5250831?auto=format&fit=crop&w=800&q=80";
-  if (booking.listing?.images && booking.listing.images.length > 0) {
-    displayImage = booking.listing.images[0].url;
-  } else if (booking.listing?.image?.url) {
-    displayImage = booking.listing.image.url;
-  }
-  
+  const getStatus = () => {
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    if (booking.status === "cancelled") return { label: "Cancelled", color: "bg-red-50 text-red-600 border-red-100" };
+    if (now >= checkIn && now <= checkOut) return { label: "Staying Now", color: "bg-blue-50 text-blue-600 border-blue-100 font-bold" };
+    if (now > checkOut) return { label: "Completed", color: "bg-emerald-50 text-emerald-600 border-emerald-100" };
+    return { label: "Confirmed", color: "bg-gray-50 text-gray-600 border-gray-200" };
+  };
+
+  const status = getStatus();
+
+  // Receipt Logic: Opens in new tab, user remains on MyTrips
+  const handleReceipt = (e) => {
+    e.stopPropagation();
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head><title>Nivaso Receipt - ${booking._id}</title></head>
+        <body style="font-family: sans-serif; padding: 50px; line-height: 1.6; color: #333;">
+          <h1 style="color: #e11d48; margin-bottom: 0;">NIVASO.</h1>
+          <p style="color: #666; margin-top: 5px;">Booking Confirmation Receipt</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
+          <div style="margin-bottom: 20px;">
+            <p><strong>Booking ID:</strong> ${booking._id}</p>
+            <p><strong>Property:</strong> ${booking.listing.title}</p>
+            <p><strong>Location:</strong> ${booking.listing.location}</p>
+          </div>
+          <div style="background: #f9f9f9; padding: 20px; border-radius: 10px;">
+            <p><strong>Check-in:</strong> ${checkIn.toLocaleDateString('en-US', formatOptions)}</p>
+            <p><strong>Check-out:</strong> ${checkOut.toLocaleDateString('en-US', formatOptions)}</p>
+            <p><strong>Total Amount Paid:</strong> ₹${booking.totalPrice.toLocaleString('en-IN')}</p>
+            <p><strong>Payment Status:</strong> Paid (Razorpay)</p>
+          </div>
+          <footer style="margin-top: 50px; font-size: 12px; color: #999;">
+            This is a computer-generated receipt for your stay at Nivaso.
+          </footer>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   return (
     <div 
-      onClick={() => navigate(`/listings/${booking.listing?._id}`)} 
-      className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-[0_10px_30px_-5px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 flex flex-col h-full cursor-pointer overflow-hidden group"
+      onClick={() => navigate(`/listings/${booking.listing._id}`)} 
+      className="bg-white rounded-[2rem] shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-gray-100 flex flex-col h-full group"
     >
-      <div className="h-52 overflow-hidden relative bg-gray-100 shrink-0">
+      {/* Image Header */}
+      <div className="h-52 relative overflow-hidden shrink-0">
         <img 
-          src={displayImage} 
-          alt={booking.listing?.title} 
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
+          src={booking.listing.images?.[0]?.url || booking.listing.image?.url} 
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+          alt={booking.listing.title}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-        
-        {/* Status Badge */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2 items-end">
-          <span className={`px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest shadow-md backdrop-blur-md uppercase ${
-            booking.paymentStatus === "paid" ? "bg-white/95 text-emerald-600" : "bg-white/95 text-amber-600"
-          }`}>
-            {booking.paymentStatus === "paid" ? "Confirmed" : "Pending"}
-          </span>
-        </div>
-
-        {/* Title Overlay */}
-        <div className="absolute bottom-4 left-5 right-5 text-white">
-          <h3 className="font-bold text-lg mb-1 truncate drop-shadow-md">{booking.listing?.title}</h3>
-          <p className="text-white/90 text-sm flex items-center gap-1.5 drop-shadow-md font-medium">
-            <FaMapMarkerAlt size={12} className="text-rose-400" /> {booking.listing?.location}, {booking.listing?.country}
-          </p>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+        <div className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-[10px] uppercase font-black border ${status.color}`}>
+          {status.label}
         </div>
       </div>
-      
-      <div className="p-5 flex flex-col flex-grow">
-        
-        {/* Dates Block */}
-        <div className="flex items-center justify-between bg-slate-50 border border-gray-100 rounded-2xl p-4 mb-5">
-          <div className="flex items-start gap-3">
-             <div className="bg-white p-2.5 rounded-xl shadow-sm text-gray-900 border border-gray-100 shrink-0">
-               <FaCalendarCheck size={16} />
-             </div>
-             <div>
-               <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-0.5">Check-in</p>
-               <p className="font-bold text-gray-900 text-sm">{checkIn.toLocaleDateString('en-US', formatOptions)}</p>
-             </div>
+
+      {/* Content Body */}
+      <div className="p-6 flex flex-col flex-grow">
+        <h3 className="font-bold text-xl text-gray-900 truncate mb-1">{booking.listing.title}</h3>
+        <p className="text-gray-500 text-sm mb-6 flex items-center gap-1">
+          <FaMapMarkerAlt size={12} className="text-rose-500"/> {booking.listing.location}
+        </p>
+
+        {/* Date Row */}
+        <div className="flex justify-between items-center bg-gray-50 rounded-2xl p-4 mb-6">
+          <div>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Check-in</p>
+            <p className="text-sm font-bold text-gray-800">{checkIn.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
           </div>
-          
-          <div className="w-px h-8 bg-gray-200"></div>
-          
-          <div className="flex items-start gap-3">
-             <div className="text-right">
-               <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-0.5">Check-out</p>
-               <p className="font-bold text-gray-900 text-sm">{checkOut.toLocaleDateString('en-US', formatOptions)}</p>
-             </div>
-             <div className="bg-white p-2.5 rounded-xl shadow-sm text-gray-400 border border-gray-100 shrink-0">
-               <FaRegClock size={16} />
-             </div>
+          <div className="h-8 w-px bg-gray-200"></div>
+          <div className="text-right">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Check-out</p>
+            <p className="text-sm font-bold text-gray-800">{checkOut.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
           </div>
         </div>
 
-        <div className="mt-auto">
-          <div className="flex justify-between items-center border-t border-gray-100 pt-4">
-            <div>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Total Paid</p>
-              <p className="font-black text-lg text-gray-900">₹{booking.totalPrice?.toLocaleString('en-IN')}</p>
-            </div>
+        {/* Footer Actions */}
+        <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Price</p>
+            <p className="text-lg font-black text-gray-900">₹{booking.totalPrice.toLocaleString('en-IN')}</p>
+          </div>
+          
+          <div className="flex gap-2">
+            {/* Receipt Button */}
+            {booking.paymentStatus === "paid" && (
+              <button 
+                onClick={handleReceipt} 
+                className="p-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors"
+                title="Download Receipt"
+              >
+                <FaRegFileAlt size={18} />
+              </button>
+            )}
             
-            <div className="shrink-0">
-              {isPast ? (
-                <span className="text-xs font-bold text-rose-600 bg-rose-50 px-4 py-2.5 rounded-xl transition-colors group-hover:bg-rose-100">
-                  Write Review
-                </span>
-              ) : (
-                <span className="text-xs font-bold text-gray-800 bg-gray-100 px-4 py-2.5 rounded-xl transition-colors group-hover:bg-gray-200">
-                  View Stay
-                </span>
-              )}
-            </div>
+            {/* Cancel Button */}
+            {!isPast && booking.status !== 'cancelled' && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onCancel(booking._id); }} 
+                className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 transition-colors"
+                title="Cancel Booking"
+              >
+                <FaTimesCircle size={18} />
+              </button>
+            )}
           </div>
         </div>
       </div>
