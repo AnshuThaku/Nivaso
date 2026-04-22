@@ -91,7 +91,7 @@ const BookingCard = ({ listing, user, showNotification, API_URL }) => {
               
               // 🚀 1 Second delay then redirect to my-trips
               setTimeout(() => {
-                navigate("/my-trips");
+                navigate("/mytrips");
               }, 1000);
             }
           } catch (error) {
